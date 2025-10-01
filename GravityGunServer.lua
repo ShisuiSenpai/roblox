@@ -34,29 +34,51 @@ local playerData = {}
 
 local function canGrabObject(player, object)
     -- Validation checks
-    if not object or not object:IsA("BasePart") then return false end
-    if object.Anchored then return false end
+    if not object or not object:IsA("BasePart") then 
+        print("Gravity Gun Server: Validation failed - not a BasePart")
+        return false 
+    end
+    
+    if object.Anchored then 
+        print("Gravity Gun Server: Validation failed - object is anchored")
+        return false 
+    end
     
     -- Check if object is part of a character
     local model = object:FindFirstAncestorOfClass("Model")
-    if model and model:FindFirstChildOfClass("Humanoid") then return false end
+    if model and model:FindFirstChildOfClass("Humanoid") then 
+        print("Gravity Gun Server: Validation failed - object is part of a character")
+        return false 
+    end
     
     -- Check mass
-    if object:GetMass() > MAX_MASS then return false end
+    local mass = object:GetMass()
+    if mass > MAX_MASS then 
+        print("Gravity Gun Server: Validation failed - mass too high:", mass)
+        return false 
+    end
     
     -- Check distance
     if player.Character and player.Character:FindFirstChild("Head") then
         local distance = (object.Position - player.Character.Head.Position).Magnitude
-        if distance > MAX_DISTANCE then return false end
+        if distance > MAX_DISTANCE then 
+            print("Gravity Gun Server: Validation failed - too far:", distance)
+            return false 
+        end
     else
+        print("Gravity Gun Server: Validation failed - player has no character/head")
         return false
     end
     
     -- Check if already held by someone
     for p, data in pairs(heldObjects) do
-        if data.object == object then return false end
+        if data.object == object then 
+            print("Gravity Gun Server: Validation failed - already held by another player")
+            return false 
+        end
     end
     
+    print("Gravity Gun Server: All validation checks passed!")
     return true
 end
 
