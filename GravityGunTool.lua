@@ -14,9 +14,18 @@ local Mouse = Player:GetMouse()
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+print("Gravity Gun Tool: Starting to load...")
+
 -- Wait for RemoteEvents to be created
-local GravityEvent = ReplicatedStorage:WaitForChild("GravityGunEvent")
-local EffectsEvent = ReplicatedStorage:WaitForChild("GravityGunEffects")
+local GravityEvent = ReplicatedStorage:WaitForChild("GravityGunEvent", 10)
+local EffectsEvent = ReplicatedStorage:WaitForChild("GravityGunEffects", 10)
+
+if not GravityEvent or not EffectsEvent then
+    warn("Gravity Gun Tool: RemoteEvents not found! Make sure server script is running.")
+    return
+end
+
+print("Gravity Gun Tool: Loaded successfully!")
 
 -- Configuration
 local MAX_DISTANCE = 50 -- Maximum distance to grab objects
@@ -98,18 +107,29 @@ end
 
 -- Tool activated (left click)
 Tool.Activated:Connect(function()
+    print("Gravity Gun: Tool activated!")
     if not isHolding then
         -- Try to grab object
         local target = Mouse.Target
+        print("Gravity Gun: Target =", target)
         if target and target:IsA("BasePart") and target.Position then
-            local distance = (target.Position - Player.Character.Head.Position).Magnitude
-            if distance <= MAX_DISTANCE then
-                -- Request server to grab object
-                GravityEvent:FireServer("Grab", target)
+            if Player.Character and Player.Character:FindFirstChild("Head") then
+                local distance = (target.Position - Player.Character.Head.Position).Magnitude
+                print("Gravity Gun: Distance =", distance)
+                if distance <= MAX_DISTANCE then
+                    -- Request server to grab object
+                    print("Gravity Gun: Requesting grab for", target.Name)
+                    GravityEvent:FireServer("Grab", target)
+                else
+                    print("Gravity Gun: Target too far away!")
+                end
             end
+        else
+            print("Gravity Gun: No valid target")
         end
     else
         -- Throw object
+        print("Gravity Gun: Throwing object!")
         local camera = workspace.CurrentCamera
         local throwDirection = camera.CFrame.LookVector
         GravityEvent:FireServer("Throw", heldObject, throwDirection, THROW_POWER)
@@ -149,6 +169,7 @@ end)
 
 -- Tool equipped
 Tool.Equipped:Connect(function()
+    print("Gravity Gun: Tool equipped!")
     equippedTool = true
     highlightConnection = game:GetService("RunService").RenderStepped:Connect(function()
         onMouseMoved()

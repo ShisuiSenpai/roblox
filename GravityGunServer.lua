@@ -61,7 +61,13 @@ local function canGrabObject(player, object)
 end
 
 local function grabObject(player, object)
-    if not canGrabObject(player, object) then return end
+    print("Gravity Gun Server: grabObject called for", player.Name, object)
+    if not canGrabObject(player, object) then 
+        print("Gravity Gun Server: Cannot grab object - validation failed")
+        return 
+    end
+    
+    print("Gravity Gun Server: Validation passed, grabbing object")
     
     -- Release any currently held object
     if heldObjects[player] then
@@ -91,6 +97,8 @@ local function grabObject(player, object)
         bodyGyro = bodyGyro,
         lastUpdate = tick()
     }
+    
+    print("Gravity Gun Server: Grab successful!")
     
     -- Notify client
     GravityEvent:FireClient(player, "GrabSuccess", object)
@@ -152,8 +160,10 @@ end
 
 -- Handle client requests
 GravityEvent.OnServerEvent:Connect(function(player, action, ...)
+    print("Gravity Gun Server: Received", action, "from", player.Name)
     if action == "Grab" then
         local object = ...
+        print("Gravity Gun Server: Attempting to grab", object)
         grabObject(player, object)
     elseif action == "Release" then
         releaseObject(player)
