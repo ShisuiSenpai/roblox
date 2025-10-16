@@ -119,16 +119,24 @@ proximityPrompt.MaxActivationDistance = 10            -- Distance to activate
 
 The UI is fully customizable in `TypingTestClient.lua`:
 
-**Main Frame (line 68):**
+**Main Frame (line 73):**
 ```lua
-mainFrame.Size = UDim2.new(0, 600, 0, 400)           -- Width x Height
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)  -- Background color
+mainFrame.Size = UDim2.new(0, 700, 0, 120)           -- Width x Height (compact)
+mainFrame.BackgroundTransparency = 1                  -- Fully transparent
+```
+
+**Content Frame (line 81):**
+```lua
+contentFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+contentFrame.BackgroundTransparency = 0.7             -- Semi-transparent (adjust 0-1)
 ```
 
 **Text Colors:**
-- Title: Line 96 `Color3.fromRGB(255, 255, 255)` - White
-- Stats: Line 164 `Color3.fromRGB(100, 200, 255)` - Blue
-- Success: Line 178 `Color3.fromRGB(100, 255, 150)` - Green
+- Sentence: Line 62 `Color3.fromRGB(230, 230, 230)` - Light gray
+- Stats: Line 92 `Color3.fromRGB(100, 220, 255)` - Cyan
+- Success: Line 104 `Color3.fromRGB(100, 255, 150)` - Green
+- Correct Typing: `Color3.fromRGB(100, 255, 150)` - Green
+- Wrong Typing: `Color3.fromRGB(255, 100, 100)` - Red
 
 ---
 

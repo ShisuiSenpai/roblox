@@ -69,127 +69,105 @@ local function createUI()
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	screenGui.Parent = player.PlayerGui
 	
-	-- Main Frame (container)
+	-- Main Frame (container) - Minimal and transparent
 	mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
-	mainFrame.Size = UDim2.new(0, 600, 0, 400)
-	mainFrame.Position = UDim2.new(0.5, 0, 1.5, 0) -- Start off-screen
-	mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-	mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	mainFrame.Size = UDim2.new(0, 700, 0, 120)
+	mainFrame.Position = UDim2.new(0.5, 0, -0.2, 0) -- Start off-screen (top)
+	mainFrame.AnchorPoint = Vector2.new(0.5, 0)
+	mainFrame.BackgroundTransparency = 1 -- Fully transparent
 	mainFrame.BorderSizePixel = 0
 	mainFrame.Parent = screenGui
 	
-	-- UI Corner for main frame
-	local mainCorner = Instance.new("UICorner")
-	mainCorner.CornerRadius = UDim.new(0, 20)
-	mainCorner.Parent = mainFrame
+	-- Container for sentence and input (with subtle background)
+	local contentFrame = Instance.new("Frame")
+	contentFrame.Name = "ContentFrame"
+	contentFrame.Size = UDim2.new(1, 0, 0, 90)
+	contentFrame.Position = UDim2.new(0, 0, 0, 0)
+	contentFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	contentFrame.BackgroundTransparency = 0.7 -- Semi-transparent
+	contentFrame.BorderSizePixel = 0
+	contentFrame.Parent = mainFrame
 	
-	-- Drop shadow effect
-	local shadow = Instance.new("ImageLabel")
-	shadow.Name = "Shadow"
-	shadow.BackgroundTransparency = 1
-	shadow.Position = UDim2.new(0, -15, 0, -15)
-	shadow.Size = UDim2.new(1, 30, 1, 30)
-	shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-	shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-	shadow.ImageTransparency = 0.7
-	shadow.ZIndex = 0
-	shadow.Parent = mainFrame
+	local contentCorner = Instance.new("UICorner")
+	contentCorner.CornerRadius = UDim.new(0, 12)
+	contentCorner.Parent = contentFrame
 	
-	-- Title
-	local title = Instance.new("TextLabel")
-	title.Name = "Title"
-	title.Size = UDim2.new(1, -40, 0, 50)
-	title.Position = UDim2.new(0, 20, 0, 20)
-	title.BackgroundTransparency = 1
-	title.Text = "⚡ TYPING TEST"
-	title.Font = Enum.Font.GothamBold
-	title.TextSize = 28
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Parent = mainFrame
+	-- Subtle glow effect
+	local glow = Instance.new("UIStroke")
+	glow.Color = Color3.fromRGB(100, 200, 255)
+	glow.Thickness = 1
+	glow.Transparency = 0.6
+	glow.Parent = contentFrame
 	
-	-- Sentence Display
+	-- Sentence Display (no background, just text)
 	sentenceLabel = Instance.new("TextLabel")
 	sentenceLabel.Name = "SentenceLabel"
-	sentenceLabel.Size = UDim2.new(1, -40, 0, 80)
-	sentenceLabel.Position = UDim2.new(0, 20, 0, 90)
-	sentenceLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+	sentenceLabel.Size = UDim2.new(1, -120, 0, 35)
+	sentenceLabel.Position = UDim2.new(0, 15, 0, 10)
+	sentenceLabel.BackgroundTransparency = 1
 	sentenceLabel.Text = "Loading..."
-	sentenceLabel.Font = Enum.Font.Gotham
-	sentenceLabel.TextSize = 20
-	sentenceLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-	sentenceLabel.TextWrapped = true
-	sentenceLabel.Parent = mainFrame
+	sentenceLabel.Font = Enum.Font.GothamMedium
+	sentenceLabel.TextSize = 18
+	sentenceLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+	sentenceLabel.TextXAlignment = Enum.TextXAlignment.Left
+	sentenceLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	sentenceLabel.Parent = contentFrame
 	
-	local sentenceCorner = Instance.new("UICorner")
-	sentenceCorner.CornerRadius = UDim.new(0, 10)
-	sentenceCorner.Parent = sentenceLabel
-	
-	-- Input Box
+	-- Input Box (minimal, transparent background)
 	inputBox = Instance.new("TextBox")
 	inputBox.Name = "InputBox"
-	inputBox.Size = UDim2.new(1, -40, 0, 50)
-	inputBox.Position = UDim2.new(0, 20, 0, 190)
-	inputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
-	inputBox.PlaceholderText = "Start typing here..."
+	inputBox.Size = UDim2.new(1, -120, 0, 35)
+	inputBox.Position = UDim2.new(0, 15, 0, 50)
+	inputBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	inputBox.BackgroundTransparency = 0.9 -- Very transparent
+	inputBox.PlaceholderText = "Type here..."
 	inputBox.Text = ""
-	inputBox.Font = Enum.Font.Gotham
+	inputBox.Font = Enum.Font.GothamMedium
 	inputBox.TextSize = 18
 	inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-	inputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+	inputBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
 	inputBox.ClearTextOnFocus = false
 	inputBox.TextXAlignment = Enum.TextXAlignment.Left
-	inputBox.Parent = mainFrame
+	inputBox.BorderSizePixel = 0
+	inputBox.Parent = contentFrame
 	
 	local inputCorner = Instance.new("UICorner")
-	inputCorner.CornerRadius = UDim.new(0, 10)
+	inputCorner.CornerRadius = UDim.new(0, 8)
 	inputCorner.Parent = inputBox
 	
 	local inputPadding = Instance.new("UIPadding")
-	inputPadding.PaddingLeft = UDim.new(0, 15)
-	inputPadding.PaddingRight = UDim.new(0, 15)
+	inputPadding.PaddingLeft = UDim.new(0, 12)
+	inputPadding.PaddingRight = UDim.new(0, 12)
 	inputPadding.Parent = inputBox
 	
-	-- Stats Label
+	-- Stats Label (compact, on the right side)
 	statsLabel = Instance.new("TextLabel")
 	statsLabel.Name = "StatsLabel"
-	statsLabel.Size = UDim2.new(1, -40, 0, 30)
-	statsLabel.Position = UDim2.new(0, 20, 0, 260)
+	statsLabel.Size = UDim2.new(0, 100, 1, 0)
+	statsLabel.Position = UDim2.new(1, -110, 0, 0)
 	statsLabel.BackgroundTransparency = 1
-	statsLabel.Text = "WPM: 0 | Accuracy: 100%"
-	statsLabel.Font = Enum.Font.GothamMedium
-	statsLabel.TextSize = 16
-	statsLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-	statsLabel.TextXAlignment = Enum.TextXAlignment.Left
-	statsLabel.Parent = mainFrame
+	statsLabel.Text = "0\nWPM"
+	statsLabel.Font = Enum.Font.GothamBold
+	statsLabel.TextSize = 20
+	statsLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
+	statsLabel.TextXAlignment = Enum.TextXAlignment.Center
+	statsLabel.TextYAlignment = Enum.TextYAlignment.Center
+	statsLabel.Parent = contentFrame
 	
-	-- Result Label
+	-- Result Label (minimal, appears below)
 	resultLabel = Instance.new("TextLabel")
 	resultLabel.Name = "ResultLabel"
-	resultLabel.Size = UDim2.new(1, -40, 0, 60)
-	resultLabel.Position = UDim2.new(0, 20, 0, 300)
+	resultLabel.Size = UDim2.new(1, 0, 0, 25)
+	resultLabel.Position = UDim2.new(0, 0, 0, 95)
 	resultLabel.BackgroundTransparency = 1
 	resultLabel.Text = ""
 	resultLabel.Font = Enum.Font.GothamBold
-	resultLabel.TextSize = 22
+	resultLabel.TextSize = 16
 	resultLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-	resultLabel.TextWrapped = true
+	resultLabel.TextXAlignment = Enum.TextXAlignment.Center
 	resultLabel.Visible = false
 	resultLabel.Parent = mainFrame
-	
-	-- Instructions
-	local instructions = Instance.new("TextLabel")
-	instructions.Name = "Instructions"
-	instructions.Size = UDim2.new(1, -40, 0, 30)
-	instructions.Position = UDim2.new(0, 20, 0, 360)
-	instructions.BackgroundTransparency = 1
-	instructions.Text = "💡 Type the sentence above as fast as you can!"
-	instructions.Font = Enum.Font.Gotham
-	instructions.TextSize = 14
-	instructions.TextColor3 = Color3.fromRGB(150, 150, 150)
-	instructions.TextXAlignment = Enum.TextXAlignment.Center
-	instructions.Parent = mainFrame
 end
 
 -- Load animation
@@ -228,7 +206,7 @@ local function startNewTest()
 	inputBox.Text = ""
 	resultLabel.Visible = false
 	resultLabel.Text = ""
-	statsLabel.Text = "WPM: 0 | Accuracy: 100%"
+	statsLabel.Text = "0\nWPM"
 	isTyping = false
 	startTime = 0
 	currentWPM = 0
@@ -296,9 +274,9 @@ local function onTextChanged()
 		end
 		
 		-- Show results
-		resultLabel.Text = string.format("✓ Complete! %d WPM in %.1f seconds", finalWPM, timeTaken)
+		resultLabel.Text = string.format("✓ %d WPM in %.1fs - Perfect!", finalWPM, timeTaken)
 		resultLabel.Visible = true
-		statsLabel.Text = string.format("WPM: %d | Accuracy: 100%%", finalWPM)
+		statsLabel.Text = string.format("%d\nWPM", finalWPM)
 		
 		-- Celebrate animation
 		local celebration = TweenService:Create(resultLabel, TweenInfo.new(0.3, Enum.EasingStyle.Bounce), {
@@ -327,7 +305,7 @@ local function onTextChanged()
 				inputBox.TextColor3 = Color3.fromRGB(255, 100, 100)
 			end
 			
-			statsLabel.Text = string.format("WPM: %d | Accuracy: %d%%", wpm, accuracy)
+			statsLabel.Text = string.format("%d\nWPM", wpm)
 		end
 	end
 end
@@ -339,10 +317,10 @@ local function showUI()
 		loadAnimation()
 	end
 	
-	-- Smooth slide up animation
-	local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	-- Smooth slide down from top animation
+	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 	local tween = TweenService:Create(mainFrame, tweenInfo, {
-		Position = UDim2.new(0.5, 0, 0.5, 0)
+		Position = UDim2.new(0.5, 0, 0.02, 0) -- Position at top with small margin
 	})
 	tween:Play()
 	
@@ -365,10 +343,10 @@ local function hideUI()
 		typingSpeedConnection = nil
 	end
 	
-	-- Smooth slide down animation
-	local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	-- Smooth slide up animation (hide)
+	local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
 	local tween = TweenService:Create(mainFrame, tweenInfo, {
-		Position = UDim2.new(0.5, 0, 1.5, 0)
+		Position = UDim2.new(0.5, 0, -0.2, 0) -- Slide up and off screen
 	})
 	tween:Play()
 	

@@ -35,11 +35,12 @@ Chair (Model)
 | Feature | Description |
 |---------|-------------|
 | **Proximity Prompt** | Press to sit in chair |
-| **Smooth UI** | Slides up when seated, down when standing |
+| **Minimal UI** | Transparent, top-positioned design |
+| **Smooth Animations** | Slides down from top when seated |
 | **Typing Test** | Random sentences from pool |
-| **WPM Tracking** | Real-time words per minute |
+| **WPM Display** | Compact WPM counter on the right |
 | **Animation Control** | Speed based on typing speed |
-| **Accuracy** | Green = correct, Red = mistake |
+| **Color Feedback** | Green = correct, Red = mistake |
 | **Auto-Restart** | New sentence after 3 seconds |
 
 ---
@@ -76,13 +77,14 @@ proximityPrompt.MaxActivationDistance = 10  -- studs
 
 | What to Change | Where | Line |
 |----------------|-------|------|
-| Animation ID | TypingTestClient.lua | 21 |
-| Min Animation Speed | TypingTestClient.lua | 20 |
-| Max Animation Speed | TypingTestClient.lua | 21 |
-| WPM for Max Speed | TypingTestClient.lua | 22 |
-| Sentences | TypingTestClient.lua | 25-36 |
-| UI Size | TypingTestClient.lua | 68 |
-| UI Colors | TypingTestClient.lua | 70, 96, 164 |
+| Animation ID | TypingTestClient.lua | 23 |
+| Min Animation Speed | TypingTestClient.lua | 24 |
+| Max Animation Speed | TypingTestClient.lua | 25 |
+| WPM for Max Speed | TypingTestClient.lua | 26 |
+| Sentences | TypingTestClient.lua | 29-40 |
+| UI Size | TypingTestClient.lua | 73 |
+| UI Transparency | TypingTestClient.lua | 81 (0.7 = 30% visible) |
+| Text Colors | TypingTestClient.lua | 62, 92, 104 |
 | Proximity Distance | ChairController.lua | 19 |
 | Prompt Text | ChairController.lua | 16-17 |
 
