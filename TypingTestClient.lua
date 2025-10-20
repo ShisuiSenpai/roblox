@@ -370,29 +370,33 @@ local function lockInSeat(seat)
 	isSeated = true
 	canLeaveSeat = false
 	
-	-- Disable jumping
+	-- Disable jumping immediately
 	if humanoid then
 		humanoid.JumpPower = 0
 		humanoid.JumpHeight = 0
+		humanoid.Sit = true -- Force sitting
 	end
 	
-	-- Monitor seat and force player to stay seated
+	-- Monitor seat and force player to stay seated AGGRESSIVELY
 	if seatLockConnection then
 		seatLockConnection:Disconnect()
 	end
 	
 	seatLockConnection = RunService.Heartbeat:Connect(function()
-		if not canLeaveSeat and isSeated and currentSeat then
-			-- If player somehow leaves seat, force them back
-			if not seat.Occupant and humanoid then
-				seat:Sit(humanoid)
-			end
+		if not canLeaveSeat and isSeated and humanoid and humanoid.Health > 0 then
+			-- Force seated state every frame
+			humanoid.JumpPower = 0
+			humanoid.JumpHeight = 0
 			
-			-- Continuously disable jump
-			if humanoid then
-				humanoid.JumpPower = 0
-				humanoid.JumpHeight = 0
-			end
+		-- If not sitting, force sitting
+		if not humanoid.Sit then
+			humanoid.Sit = true
+		end
+		
+		-- If not in the seat, force back
+		if currentSeat and currentSeat.Occupant ~= humanoid then
+			currentSeat:Sit(humanoid)
+		end
 		end
 	end)
 end
