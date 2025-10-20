@@ -106,6 +106,12 @@ local lastTypingSoundTime = 0
 local TYPING_SOUND_COOLDOWN = 0.05 -- Minimum time between typing sounds (50ms)
 local previousTextLength = 0
 
+-- Seat lock variables
+local currentSeat = nil
+local seatLockConnection = nil
+local isSeated = false
+local canLeaveSeat = false
+
 -- Create UI
 local function createUI()
 	-- Main ScreenGui
@@ -354,6 +360,67 @@ local function cleanupSounds()
 			end
 		end
 	end
+end
+
+-- Lock player in seat (prevent exit)
+local function lockInSeat(seat)
+	if not seat then return end
+	
+	currentSeat = seat
+	isSeated = true
+	canLeaveSeat = false
+	
+	-- Disable jumping
+	if humanoid then
+		humanoid.JumpPower = 0
+		humanoid.JumpHeight = 0
+	end
+	
+	-- Monitor seat and force player to stay seated
+	if seatLockConnection then
+		seatLockConnection:Disconnect()
+	end
+	
+	seatLockConnection = RunService.Heartbeat:Connect(function()
+		if not canLeaveSeat and isSeated and currentSeat then
+			-- If player somehow leaves seat, force them back
+			if not seat.Occupant and humanoid then
+				seat:Sit(humanoid)
+			end
+			
+			-- Continuously disable jump
+			if humanoid then
+				humanoid.JumpPower = 0
+				humanoid.JumpHeight = 0
+			end
+		end
+	end)
+end
+
+-- Unlock seat (allow player to leave)
+local function unlockSeat()
+	canLeaveSeat = true
+	isSeated = false
+	
+	-- Notify server to unlock seat
+	local remoteEvent = ReplicatedStorage:FindFirstChild("TypingTestRemote")
+	if remoteEvent then
+		remoteEvent:FireServer("UnlockSeat")
+	end
+	
+	-- Disconnect seat lock
+	if seatLockConnection then
+		seatLockConnection:Disconnect()
+		seatLockConnection = nil
+	end
+	
+	-- Re-enable jumping
+	if humanoid then
+		humanoid.JumpPower = 50 -- Default Roblox jump power
+		humanoid.JumpHeight = 7.2 -- Default Roblox jump height
+	end
+	
+	currentSeat = nil
 end
 
 -- Load animation
@@ -825,6 +892,7 @@ function hideUI()
 
 	cleanup()
 	cleanupSounds() -- Stop all sounds
+	unlockSeat() -- Allow player to leave seat
 
 	-- Fade out content first
 	if mainFrame:FindFirstChild("ContentFrame") then
@@ -876,6 +944,7 @@ end
 
 -- Cleanup on character death
 humanoid.Died:Connect(function()
+	unlockSeat() -- Unlock seat before hiding UI
 	hideUI()
 end)
 

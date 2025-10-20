@@ -8,7 +8,8 @@ This is a Roblox typing test game where players sit in a chair and must type sen
 ## 🎯 Features
 - ⏱️ **Timer slider** - blue bar that fades to transparent as time runs out
 - 📈 **Progressive difficulty** - timer gets 1 second faster each round
-- ❌ **Auto-kick on timeout** - players are unseated if they run out of time
+- 💀 **Death on timeout** - players DIE when time runs out (no escape!)
+- 🔒 **Seat lock** - players CANNOT leave chair once seated (must play or die!)
 - ✅ **Continuous gameplay** - automatically advances to next sentence on success
 - 🎨 **Minimal UI** - smooth, polished, transparent modern style
 - 🏃 **Animation speed** - changes based on typing speed (WPM)

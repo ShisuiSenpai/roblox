@@ -51,11 +51,12 @@ local function sitPlayer(player)
 	-- Sit the player
 	seat:Sit(humanoid)
 	currentOccupant = player
+	seatLocked = true
 
-	-- Fire event to client to show UI
+	-- Fire event to client to show UI (send seat reference)
 	local remoteEvent = game.ReplicatedStorage:FindFirstChild("TypingTestRemote")
 	if remoteEvent then
-		remoteEvent:FireClient(player, "ShowUI")
+		remoteEvent:FireClient(player, "ShowUI", seat)
 	end
 end
 
