@@ -6,14 +6,16 @@ This is a Roblox typing test game where players sit in a chair and must type sen
 ---
 
 ## 🎯 Features
-- ⏱️ **Timer slider** showing remaining time
+- ⏱️ **Timer slider** - blue bar that fades to transparent as time runs out
 - 📈 **Progressive difficulty** - timer gets 1 second faster each round
 - ❌ **Auto-kick on timeout** - players are unseated if they run out of time
 - ✅ **Continuous gameplay** - automatically advances to next sentence on success
-- 🎨 **Minimal UI** - matches the original transparent/modern style
+- 🎨 **Minimal UI** - smooth, polished, transparent modern style
 - 🏃 **Animation speed** - changes based on typing speed (WPM)
-- ⏳ **3-second countdown** - before each round starts (3... 2... 1... GO!)
+- ⏳ **3-second countdown** - casual countdown below UI (3... 2... 1... type!)
 - 🔒 **Input locking** - prevents typing during countdown and after round ends
+- ✨ **Smooth animations** - everything transitions smoothly with professional polish
+- 💫 **Glow effects** - UI pulses when you start typing for visual feedback
 
 ---
 

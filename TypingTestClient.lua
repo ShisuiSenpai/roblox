@@ -62,6 +62,7 @@ local timerBar = nil
 local timerBackground = nil
 local roundLabel = nil
 local countdownLabel = nil
+local contentGlow = nil
 
 local animationTrack = nil
 local currentSentence = ""
@@ -90,8 +91,8 @@ local function createUI()
 	-- Main Frame (container) - Minimal and transparent
 	mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
-	mainFrame.Size = UDim2.new(0, 700, 0, 150) -- Increased height for timer
-	mainFrame.Position = UDim2.new(0.5, 0, -0.25, 0) -- Start off-screen (top)
+	mainFrame.Size = UDim2.new(0, 700, 0, 200) -- Increased for countdown below
+	mainFrame.Position = UDim2.new(0.5, 0, -0.3, 0) -- Start off-screen (top)
 	mainFrame.AnchorPoint = Vector2.new(0.5, 0)
 	mainFrame.BackgroundTransparency = 1
 	mainFrame.BorderSizePixel = 0
@@ -111,11 +112,12 @@ local function createUI()
 	contentCorner.CornerRadius = UDim.new(0, 12)
 	contentCorner.Parent = contentFrame
 
-	local glow = Instance.new("UIStroke")
-	glow.Color = Color3.fromRGB(100, 200, 255)
-	glow.Thickness = 1
-	glow.Transparency = 0.6
-	glow.Parent = contentFrame
+	contentGlow = Instance.new("UIStroke")
+	contentGlow.Name = "Glow"
+	contentGlow.Color = Color3.fromRGB(100, 200, 255)
+	contentGlow.Thickness = 1
+	contentGlow.Transparency = 0.6
+	contentGlow.Parent = contentFrame
 
 	-- Sentence Display
 	sentenceLabel = Instance.new("TextLabel")
@@ -212,14 +214,7 @@ local function createUI()
 	timerBarCorner.CornerRadius = UDim.new(0, 4)
 	timerBarCorner.Parent = timerBar
 
-	-- Timer gradient
-	local gradient = Instance.new("UIGradient")
-	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 100)),
-		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 200, 100)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 220, 255))
-	})
-	gradient.Parent = timerBar
+	-- Removed old gradient - will use transparency instead
 
 	-- Result Label
 	resultLabel = Instance.new("TextLabel")
@@ -235,21 +230,28 @@ local function createUI()
 	resultLabel.Visible = false
 	resultLabel.Parent = mainFrame
 
-	-- Countdown Label (centered, large)
+	-- Countdown Label (below the UI, casual)
 	countdownLabel = Instance.new("TextLabel")
 	countdownLabel.Name = "CountdownLabel"
-	countdownLabel.Size = UDim2.new(1, 0, 0, 90)
-	countdownLabel.Position = UDim2.new(0, 0, 0, 0)
+	countdownLabel.Size = UDim2.new(1, 0, 0, 60)
+	countdownLabel.Position = UDim2.new(0, 0, 0, 125) -- Below timer bar
 	countdownLabel.BackgroundTransparency = 1
 	countdownLabel.Text = ""
-	countdownLabel.Font = Enum.Font.GothamBold
-	countdownLabel.TextSize = 48
+	countdownLabel.Font = Enum.Font.GothamMedium
+	countdownLabel.TextSize = 32
 	countdownLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
 	countdownLabel.TextXAlignment = Enum.TextXAlignment.Center
 	countdownLabel.TextYAlignment = Enum.TextYAlignment.Center
 	countdownLabel.Visible = false
-	countdownLabel.ZIndex = 10
+	countdownLabel.TextTransparency = 0
 	countdownLabel.Parent = mainFrame
+
+	-- Add subtle glow to countdown
+	local countdownStroke = Instance.new("UIStroke")
+	countdownStroke.Color = Color3.fromRGB(100, 220, 255)
+	countdownStroke.Thickness = 0
+	countdownStroke.Transparency = 0.3
+	countdownStroke.Parent = countdownLabel
 end
 
 -- Load animation
@@ -308,11 +310,28 @@ local function onTimeout()
 		inputBox.Active = false
 	end
 	canType = false
+	
+	-- Reset glow smoothly
+	if contentGlow then
+		local glowReset = TweenService:Create(contentGlow,
+			TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+			Transparency = 0.6,
+			Thickness = 1
+		})
+		glowReset:Play()
+	end
 
-	-- Show failure message
+	-- Show failure message with smooth fade
 	resultLabel.Text = "⏱ Time's up! Try again!"
 	resultLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+	resultLabel.TextTransparency = 1
 	resultLabel.Visible = true
+	
+	local failFade = TweenService:Create(resultLabel,
+		TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+		TextTransparency = 0
+	})
+	failFade:Play()
 
 	-- Notify server to kick player
 	local remoteEvent = ReplicatedStorage:FindFirstChild("TypingTestRemote")
@@ -338,18 +357,27 @@ local function updateTimer()
 		return
 	end
 
-	-- Update bar size
+	-- Update bar size with smooth tween
 	local progress = timeRemaining / currentTimeLimit
-	timerBar.Size = UDim2.new(progress, 0, 1, 0)
+	local targetSize = UDim2.new(progress, 0, 1, 0)
+	
+	-- Smooth size transition
+	local sizeTween = TweenService:Create(timerBar, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+		Size = targetSize
+	})
+	sizeTween:Play()
 
-	-- Change color based on remaining time
-	if progress > 0.5 then
-		timerBar.BackgroundColor3 = Color3.fromRGB(100, 220, 255) -- Blue (good)
-	elseif progress > 0.25 then
-		timerBar.BackgroundColor3 = Color3.fromRGB(255, 200, 100) -- Orange (warning)
-	else
-		timerBar.BackgroundColor3 = Color3.fromRGB(255, 100, 100) -- Red (danger)
-	end
+	-- Keep blue color but adjust transparency based on progress
+	timerBar.BackgroundColor3 = Color3.fromRGB(100, 220, 255)
+	
+	-- More transparent = less time remaining
+	local transparency = 1 - progress -- As progress decreases, transparency increases
+	transparency = math.clamp(transparency * 0.7, 0, 0.7) -- Max 70% transparent
+	
+	local colorTween = TweenService:Create(timerBar, TweenInfo.new(0.2, Enum.EasingStyle.Sine), {
+		BackgroundTransparency = transparency
+	})
+	colorTween:Play()
 end
 
 -- Countdown before round starts
@@ -369,43 +397,63 @@ local function startCountdown(callback)
 		countdownLabel.Visible = true
 	end
 
-	-- Count down from 3 to 1
+	-- Count down from 3 to 1 with smooth, casual animations
 	for i = COUNTDOWN_TIME, 1, -1 do
 		if countdownLabel then
 			countdownLabel.Text = tostring(i)
-			countdownLabel.TextSize = 48
+			countdownLabel.TextSize = 24
+			countdownLabel.TextTransparency = 1
 
-			-- Pulse animation
-			local pulseTween = TweenService:Create(countdownLabel, TweenInfo.new(0.3, Enum.EasingStyle.Bounce), {
-				TextSize = 60
+			-- Smooth fade in + scale up
+			local fadeIn = TweenService:Create(countdownLabel, 
+				TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				TextTransparency = 0,
+				TextSize = 36
 			})
-			pulseTween:Play()
-			pulseTween.Completed:Wait()
-
-			local shrinkTween = TweenService:Create(countdownLabel, TweenInfo.new(0.2), {
-				TextSize = 48
+			fadeIn:Play()
+			fadeIn.Completed:Wait()
+			
+			task.wait(0.4)
+			
+			-- Smooth fade out
+			local fadeOut = TweenService:Create(countdownLabel,
+				TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				TextTransparency = 1,
+				TextSize = 28
 			})
-			shrinkTween:Play()
+			fadeOut:Play()
+			fadeOut.Completed:Wait()
 		end
-		task.wait(1)
+		task.wait(0.1)
 	end
 
-	-- Show "GO!"
+	-- Show "GO!" with casual bounce
 	if countdownLabel then
-		countdownLabel.Text = "GO!"
+		countdownLabel.Text = "type!"
 		countdownLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-		local goTween = TweenService:Create(countdownLabel, TweenInfo.new(0.3, Enum.EasingStyle.Elastic), {
-			TextSize = 72
+		countdownLabel.TextSize = 20
+		countdownLabel.TextTransparency = 1
+		
+		-- Smooth bounce in
+		local goTween = TweenService:Create(countdownLabel, 
+			TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			TextTransparency = 0,
+			TextSize = 40
 		})
 		goTween:Play()
-		task.wait(0.5)
+		goTween.Completed:Wait()
+		
+		task.wait(0.3)
 
-		-- Fade out
-		local fadeTween = TweenService:Create(countdownLabel, TweenInfo.new(0.3), {
-			TextTransparency = 1
+		-- Smooth fade out
+		local fadeTween = TweenService:Create(countdownLabel, 
+			TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			TextTransparency = 1,
+			TextSize = 32
 		})
 		fadeTween:Play()
 		fadeTween.Completed:Wait()
+		
 		countdownLabel.Visible = false
 		countdownLabel.TextTransparency = 0
 		countdownLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
@@ -442,14 +490,32 @@ local function startNewTest()
 	timeRemaining = currentTimeLimit
 	canType = false
 
-	-- Reset timer bar
-	timerBar.Size = UDim2.new(1, 0, 1, 0)
+	-- Reset timer bar with smooth animation
 	timerBar.BackgroundColor3 = Color3.fromRGB(100, 220, 255)
+	timerBar.BackgroundTransparency = 0
+	local resetTween = TweenService:Create(timerBar, 
+		TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = UDim2.new(1, 0, 1, 0)
+	})
+	resetTween:Play()
 
-	-- Start countdown, then focus input
+	-- Reset glow
+	if contentGlow then
+		contentGlow.Transparency = 0.6
+		contentGlow.Thickness = 1
+	end
+
+	-- Start countdown, then focus input with smooth effect
 	startCountdown(function()
 		if inputBox then
 			inputBox:CaptureFocus()
+			
+			-- Subtle highlight on focus
+			local focusTween = TweenService:Create(inputBox,
+				TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+				BackgroundTransparency = 0.85
+			})
+			focusTween:Play()
 		end
 	end)
 end
@@ -468,6 +534,16 @@ local function onTextChanged()
 	if #inputText == 1 and not isTyping then
 		isTyping = true
 		startTime = tick()
+
+		-- Glow pulse when typing starts
+		if contentGlow then
+			local glowPulse = TweenService:Create(contentGlow,
+				TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Transparency = 0.2,
+				Thickness = 2
+			})
+			glowPulse:Play()
+		end
 
 		-- Start animation
 		if animationTrack then
@@ -525,12 +601,30 @@ local function onTextChanged()
 			inputBox.Active = false
 		end
 		canType = false
+		
+		-- Reset glow smoothly
+		if contentGlow then
+			local glowReset = TweenService:Create(contentGlow,
+				TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+				Transparency = 0.6,
+				Thickness = 1
+			})
+			glowReset:Play()
+		end
 
-		-- Show success
+		-- Show success with smooth animation
 		resultLabel.Text = string.format("✓ %d WPM - Next round!", finalWPM)
 		resultLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+		resultLabel.TextTransparency = 1
 		resultLabel.Visible = true
 		statsLabel.Text = string.format("%d\nWPM", finalWPM)
+		
+		-- Smooth fade in
+		local resultFade = TweenService:Create(resultLabel,
+			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			TextTransparency = 0
+		})
+		resultFade:Play()
 
 		-- Increase difficulty
 		currentRound = currentRound + 1
@@ -549,12 +643,13 @@ local function onTextChanged()
 			-- Check accuracy
 			local correct = inputText == string.sub(currentSentence, 1, #inputText)
 
-			-- Color code accuracy
-			if correct then
-				inputBox.TextColor3 = Color3.fromRGB(100, 255, 150)
-			else
-				inputBox.TextColor3 = Color3.fromRGB(255, 100, 100)
-			end
+			-- Color code accuracy with smooth transition
+			local targetColor = correct and Color3.fromRGB(100, 255, 150) or Color3.fromRGB(255, 100, 100)
+			local colorTween = TweenService:Create(inputBox,
+				TweenInfo.new(0.15, Enum.EasingStyle.Quad), {
+				TextColor3 = targetColor
+			})
+			colorTween:Play()
 
 			statsLabel.Text = string.format("%d\nWPM", wpm)
 		end
@@ -572,12 +667,24 @@ local function showUI()
 	currentRound = 1
 	currentTimeLimit = INITIAL_TIME
 
-	-- Smooth slide down from top animation
-	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	-- Smooth slide down with bounce
+	mainFrame.Position = UDim2.new(0.5, 0, -0.3, 0)
+	local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	local tween = TweenService:Create(mainFrame, tweenInfo, {
 		Position = UDim2.new(0.5, 0, 0.02, 0)
 	})
 	tween:Play()
+	
+	-- Fade in effect for content
+	if mainFrame:FindFirstChild("ContentFrame") then
+		local contentFrame = mainFrame.ContentFrame
+		contentFrame.BackgroundTransparency = 1
+		local fadeTween = TweenService:Create(contentFrame,
+			TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+			BackgroundTransparency = 0.7
+		})
+		fadeTween:Play()
+	end
 
 	-- Start test
 	task.wait(0.3)
@@ -590,10 +697,20 @@ function hideUI()
 
 	cleanup()
 
+	-- Fade out content first
+	if mainFrame:FindFirstChild("ContentFrame") then
+		local contentFrame = mainFrame.ContentFrame
+		local fadeTween = TweenService:Create(contentFrame,
+			TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+			BackgroundTransparency = 1
+		})
+		fadeTween:Play()
+	end
+	
 	-- Smooth slide up animation
-	local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 	local tween = TweenService:Create(mainFrame, tweenInfo, {
-		Position = UDim2.new(0.5, 0, -0.25, 0)
+		Position = UDim2.new(0.5, 0, -0.3, 0)
 	})
 	tween:Play()
 
