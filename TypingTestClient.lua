@@ -30,6 +30,7 @@ local WPM_FOR_MAX_SPEED = 100
 local INITIAL_TIME = 15 -- Starting time in seconds
 local MIN_TIME = 5 -- Minimum time allowed (difficulty cap)
 local TIME_REDUCTION = 1 -- Seconds reduced each successful round
+local COUNTDOWN_TIME = 3 -- Countdown before each round starts
 
 -- Sentences pool
 local SENTENCES = {
@@ -60,6 +61,7 @@ local resultLabel = nil
 local timerBar = nil
 local timerBackground = nil
 local roundLabel = nil
+local countdownLabel = nil
 
 local animationTrack = nil
 local currentSentence = ""
@@ -73,6 +75,8 @@ local currentWPM = 0
 local currentRound = 1
 local currentTimeLimit = INITIAL_TIME
 local timeRemaining = INITIAL_TIME
+local isCountingDown = false
+local canType = false
 
 -- Create UI
 local function createUI()
@@ -230,6 +234,22 @@ local function createUI()
 	resultLabel.TextXAlignment = Enum.TextXAlignment.Center
 	resultLabel.Visible = false
 	resultLabel.Parent = mainFrame
+
+	-- Countdown Label (centered, large)
+	countdownLabel = Instance.new("TextLabel")
+	countdownLabel.Name = "CountdownLabel"
+	countdownLabel.Size = UDim2.new(1, 0, 0, 90)
+	countdownLabel.Position = UDim2.new(0, 0, 0, 0)
+	countdownLabel.BackgroundTransparency = 1
+	countdownLabel.Text = ""
+	countdownLabel.Font = Enum.Font.GothamBold
+	countdownLabel.TextSize = 48
+	countdownLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
+	countdownLabel.TextXAlignment = Enum.TextXAlignment.Center
+	countdownLabel.TextYAlignment = Enum.TextYAlignment.Center
+	countdownLabel.Visible = false
+	countdownLabel.ZIndex = 10
+	countdownLabel.Parent = mainFrame
 end
 
 -- Load animation
@@ -282,6 +302,13 @@ end
 local function onTimeout()
 	cleanup()
 
+	-- Lock input
+	if inputBox then
+		inputBox.TextEditable = false
+		inputBox.Active = false
+	end
+	canType = false
+
 	-- Show failure message
 	resultLabel.Text = "⏱ Time's up! Try again!"
 	resultLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
@@ -325,6 +352,80 @@ local function updateTimer()
 	end
 end
 
+-- Countdown before round starts
+local function startCountdown(callback)
+	isCountingDown = true
+	canType = false
+
+	-- Lock input during countdown
+	if inputBox then
+		inputBox.TextEditable = false
+		inputBox.Active = false
+		inputBox.Text = ""
+	end
+
+	-- Show countdown label
+	if countdownLabel then
+		countdownLabel.Visible = true
+	end
+
+	-- Count down from 3 to 1
+	for i = COUNTDOWN_TIME, 1, -1 do
+		if countdownLabel then
+			countdownLabel.Text = tostring(i)
+			countdownLabel.TextSize = 48
+
+			-- Pulse animation
+			local pulseTween = TweenService:Create(countdownLabel, TweenInfo.new(0.3, Enum.EasingStyle.Bounce), {
+				TextSize = 60
+			})
+			pulseTween:Play()
+			pulseTween.Completed:Wait()
+
+			local shrinkTween = TweenService:Create(countdownLabel, TweenInfo.new(0.2), {
+				TextSize = 48
+			})
+			shrinkTween:Play()
+		end
+		task.wait(1)
+	end
+
+	-- Show "GO!"
+	if countdownLabel then
+		countdownLabel.Text = "GO!"
+		countdownLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+		local goTween = TweenService:Create(countdownLabel, TweenInfo.new(0.3, Enum.EasingStyle.Elastic), {
+			TextSize = 72
+		})
+		goTween:Play()
+		task.wait(0.5)
+
+		-- Fade out
+		local fadeTween = TweenService:Create(countdownLabel, TweenInfo.new(0.3), {
+			TextTransparency = 1
+		})
+		fadeTween:Play()
+		fadeTween.Completed:Wait()
+		countdownLabel.Visible = false
+		countdownLabel.TextTransparency = 0
+		countdownLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
+	end
+
+	isCountingDown = false
+	canType = true
+
+	-- Unlock input
+	if inputBox then
+		inputBox.TextEditable = true
+		inputBox.Active = true
+	end
+
+	-- Execute callback
+	if callback then
+		callback()
+	end
+end
+
 -- Start new test
 local function startNewTest()
 	-- Reset
@@ -339,19 +440,29 @@ local function startNewTest()
 	startTime = 0
 	currentWPM = 0
 	timeRemaining = currentTimeLimit
+	canType = false
 
 	-- Reset timer bar
 	timerBar.Size = UDim2.new(1, 0, 1, 0)
 	timerBar.BackgroundColor3 = Color3.fromRGB(100, 220, 255)
 
-	-- Focus input
-	task.wait(0.5)
-	inputBox:CaptureFocus()
+	-- Start countdown, then focus input
+	startCountdown(function()
+		if inputBox then
+			inputBox:CaptureFocus()
+		end
+	end)
 end
 
 -- Check typing progress
 local function onTextChanged()
 	local inputText = inputBox.Text
+
+	-- Prevent typing during countdown or after round ends
+	if not canType or isCountingDown then
+		inputBox.Text = ""
+		return
+	end
 
 	-- Start timing on first character
 	if #inputText == 1 and not isTyping then
@@ -407,6 +518,13 @@ local function onTextChanged()
 		local finalWPM = calculateWPM(inputText, timeTaken)
 
 		cleanup()
+
+		-- Lock input
+		if inputBox then
+			inputBox.TextEditable = false
+			inputBox.Active = false
+		end
+		canType = false
 
 		-- Show success
 		resultLabel.Text = string.format("✓ %d WPM - Next round!", finalWPM)

@@ -25,9 +25,10 @@ Workspace
 
 | Setting | Location | Default | Description |
 |---------|----------|---------|-------------|
-| `INITIAL_TIME` | TypingTestClient line 27 | 15 | Starting time in seconds |
-| `MIN_TIME` | TypingTestClient line 28 | 5 | Minimum time (hardest difficulty) |
-| `TIME_REDUCTION` | TypingTestClient line 29 | 1 | Seconds removed each round |
+| `INITIAL_TIME` | TypingTestClient line 30 | 15 | Starting time in seconds |
+| `MIN_TIME` | TypingTestClient line 31 | 5 | Minimum time (hardest difficulty) |
+| `TIME_REDUCTION` | TypingTestClient line 32 | 1 | Seconds removed each round |
+| `COUNTDOWN_TIME` | TypingTestClient line 33 | 3 | Countdown before round starts |
 | `ANIMATION_ID` | TypingTestClient line 24 | (Your ID) | Your animation asset ID |
 
 ---
@@ -45,6 +46,10 @@ Player sits in chair
     ↓
 UI appears at top of screen
     ↓
+3-second countdown (3... 2... 1... GO!)
+    ↓
+Input unlocks, player can type
+    ↓
 Player starts typing
     ↓
 Timer bar starts draining
@@ -52,8 +57,8 @@ Timer bar starts draining
 ┌─────────────────┐
 │ Success?        │
 ├─────────────────┤
-│ ✅ YES          │ → Next round, -1 second, new sentence
-│ ❌ NO (timeout) │ → Kicked from chair, UI hides, game over
+│ ✅ YES          │ → Input locks → 2s pause → Countdown → Next round
+│ ❌ NO (timeout) │ → Input locks → Kicked from chair → UI hides
 └─────────────────┘
 ```
 

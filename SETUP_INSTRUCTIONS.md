@@ -12,6 +12,8 @@ This is a Roblox typing test game where players sit in a chair and must type sen
 - ✅ **Continuous gameplay** - automatically advances to next sentence on success
 - 🎨 **Minimal UI** - matches the original transparent/modern style
 - 🏃 **Animation speed** - changes based on typing speed (WPM)
+- ⏳ **3-second countdown** - before each round starts (3... 2... 1... GO!)
+- 🔒 **Input locking** - prevents typing during countdown and after round ends
 
 ---
 
@@ -91,17 +93,19 @@ Chair (Model)
 
 You can customize these settings in the **TypingTestClient** script:
 
-### Timer Settings (Lines 27-30)
+### Timer Settings (Lines 27-31)
 ```lua
 local INITIAL_TIME = 15        -- Starting time in seconds
 local MIN_TIME = 5             -- Minimum time (difficulty cap)
 local TIME_REDUCTION = 1       -- Seconds reduced per round
+local COUNTDOWN_TIME = 3       -- Countdown before each round
 ```
 
 **Examples:**
-- **Easier:** Set `INITIAL_TIME = 20`, `TIME_REDUCTION = 0.5`
-- **Harder:** Set `INITIAL_TIME = 10`, `TIME_REDUCTION = 1.5`
-- **Very Hard:** Set `INITIAL_TIME = 8`, `MIN_TIME = 3`
+- **Easier:** Set `INITIAL_TIME = 20`, `TIME_REDUCTION = 0.5`, `COUNTDOWN_TIME = 5`
+- **Harder:** Set `INITIAL_TIME = 10`, `TIME_REDUCTION = 1.5`, `COUNTDOWN_TIME = 2`
+- **Very Hard:** Set `INITIAL_TIME = 8`, `MIN_TIME = 3`, `COUNTDOWN_TIME = 1`
+- **No Countdown:** Set `COUNTDOWN_TIME = 0` (instant start, but not recommended)
 
 ### Animation Settings (Lines 25-26)
 ```lua
@@ -183,9 +187,11 @@ The UI maintains the minimal, transparent style:
 1. **Player approaches chair** → ProximityPrompt appears
 2. **Player triggers prompt** → Character sits in chair
 3. **Server tells client** → Show typing UI
-4. **Timer starts when typing begins** → Progress bar decreases
-5. **Player completes sentence in time** → Round increases, timer gets faster, new sentence
-6. **Player runs out of time** → Client tells server → Server kicks player from chair → UI hides
+4. **3-second countdown** → "3... 2... 1... GO!" (input locked)
+5. **Input unlocks** → Player can start typing
+6. **Timer starts when typing begins** → Progress bar decreases
+7. **Player completes sentence in time** → Input locks → Round increases, timer gets faster, new sentence
+8. **Player runs out of time** → Input locks → Client tells server → Server kicks player from chair → UI hides
 
 ---
 
