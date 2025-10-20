@@ -2,26 +2,28 @@
 
 ## Overview
 
-The typing test now has a complete sound system with 5 different sound effects:
+The typing test now has a complete sound system with 6 different sound effects:
 
 1. **Typing Correct** 🟢 - Soft click when typing the right letter
 2. **Typing Wrong** 🔴 - Error beep when making a mistake
 3. **Countdown Tick** ⏰ - Tick sound for 3, 2, 1
-4. **Round Win** 🎉 - Success chime when completing a round
-5. **Round Lose** ❌ - Fail sound when time runs out
+4. **Countdown Go** 🚀 - "Start" sound when "type!" appears
+5. **Round Win** 🎉 - Success chime when completing a round
+6. **Round Lose** ❌ - Fail sound when time runs out (then you die 💀)
 
 ---
 
 ## 🎵 Sound IDs Setup
 
 ### Where to Configure
-Open `TypingTestClient.lua` and find lines **35-42**:
+Open `TypingTestClient.lua` and find lines **35-43**:
 
 ```lua
 local SOUND_IDS = {
 	TYPING_CORRECT = "rbxassetid://12221967",   -- Replace with your sound ID
 	TYPING_WRONG = "rbxassetid://12221984",     -- Replace with your sound ID
 	COUNTDOWN_TICK = "rbxassetid://12221976",   -- Replace with your sound ID
+	COUNTDOWN_GO = "rbxassetid://12221981",     -- Replace with your sound ID
 	ROUND_WIN = "rbxassetid://12221982",        -- Replace with your sound ID
 	ROUND_LOSE = "rbxassetid://12221991",       -- Replace with your sound ID
 }
@@ -49,13 +51,14 @@ local SOUND_IDS = {
 ## 🎚️ Volume Settings
 
 ### Where to Configure
-Lines **44-50** in `TypingTestClient.lua`:
+Lines **45-52** in `TypingTestClient.lua`:
 
 ```lua
 local SOUND_VOLUMES = {
 	TYPING_CORRECT = 0.3,    -- Quiet (plays frequently)
 	TYPING_WRONG = 0.5,      -- Slightly louder
 	COUNTDOWN_TICK = 0.6,    -- Clear countdown
+	COUNTDOWN_GO = 0.7,      -- "type!" emphasis
 	ROUND_WIN = 0.7,         -- Celebratory
 	ROUND_LOSE = 0.6,        -- Clear failure
 }

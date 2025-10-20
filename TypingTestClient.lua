@@ -38,6 +38,7 @@ local SOUND_IDS = {
 	TYPING_CORRECT = "rbxassetid://12221967",      -- Soft click (correct typing)
 	TYPING_WRONG = "rbxassetid://12221984",        -- Error beep (wrong typing)
 	COUNTDOWN_TICK = "rbxassetid://12221976",      -- Tick sound (3, 2, 1)
+	COUNTDOWN_GO = "rbxassetid://12221981",        -- "type!" sound (go!)
 	ROUND_WIN = "rbxassetid://12221982",           -- Success chime (round complete)
 	ROUND_LOSE = "rbxassetid://12221991",          -- Fail sound (timeout)
 }
@@ -47,6 +48,7 @@ local SOUND_VOLUMES = {
 	TYPING_CORRECT = 0.3,    -- Quiet for frequent sounds
 	TYPING_WRONG = 0.5,      -- Slightly louder for errors
 	COUNTDOWN_TICK = 0.6,    -- Clear countdown
+	COUNTDOWN_GO = 0.7,      -- "type!" emphasis
 	ROUND_WIN = 0.7,         -- Celebratory
 	ROUND_LOSE = 0.6,        -- Clear failure
 }
@@ -442,8 +444,14 @@ local function onTimeout()
 		remoteEvent:FireServer("Timeout")
 	end
 
-	-- Hide UI after brief delay
+	-- Kill player after brief delay
 	task.wait(1.5)
+	
+	-- Kill the player's character
+	if character and humanoid then
+		humanoid.Health = 0
+	end
+	
 	hideUI()
 end
 
@@ -533,12 +541,15 @@ local function startCountdown(callback)
 		task.wait(0.1)
 	end
 
-	-- Show "GO!" with casual bounce
+	-- Show "type!" with casual bounce
 	if countdownLabel then
 		countdownLabel.Text = "type!"
 		countdownLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
 		countdownLabel.TextSize = 20
 		countdownLabel.TextTransparency = 1
+		
+		-- Play "go" sound
+		playSound("COUNTDOWN_GO")
 		
 		-- Smooth bounce in
 		local goTween = TweenService:Create(countdownLabel, 
