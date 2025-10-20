@@ -32,6 +32,25 @@ local MIN_TIME = 5 -- Minimum time allowed (difficulty cap)
 local TIME_REDUCTION = 1 -- Seconds reduced each successful round
 local COUNTDOWN_TIME = 3 -- Countdown before each round starts
 
+-- Sound Configuration
+local SOUNDS_ENABLED = true -- Set to false to disable all sounds
+local SOUND_IDS = {
+	TYPING_CORRECT = "rbxassetid://12221967",      -- Soft click (correct typing)
+	TYPING_WRONG = "rbxassetid://12221984",        -- Error beep (wrong typing)
+	COUNTDOWN_TICK = "rbxassetid://12221976",      -- Tick sound (3, 2, 1)
+	ROUND_WIN = "rbxassetid://12221982",           -- Success chime (round complete)
+	ROUND_LOSE = "rbxassetid://12221991",          -- Fail sound (timeout)
+}
+
+-- Sound Volume Settings (0.0 to 1.0)
+local SOUND_VOLUMES = {
+	TYPING_CORRECT = 0.3,    -- Quiet for frequent sounds
+	TYPING_WRONG = 0.5,      -- Slightly louder for errors
+	COUNTDOWN_TICK = 0.6,    -- Clear countdown
+	ROUND_WIN = 0.7,         -- Celebratory
+	ROUND_LOSE = 0.6,        -- Clear failure
+}
+
 -- Sentences pool
 local SENTENCES = {
 	"The quick brown fox jumps over the lazy dog",
@@ -78,6 +97,12 @@ local currentTimeLimit = INITIAL_TIME
 local timeRemaining = INITIAL_TIME
 local isCountingDown = false
 local canType = false
+
+-- Sound system variables
+local soundPool = {}
+local lastTypingSoundTime = 0
+local TYPING_SOUND_COOLDOWN = 0.05 -- Minimum time between typing sounds (50ms)
+local previousTextLength = 0
 
 -- Create UI
 local function createUI()
@@ -254,6 +279,81 @@ local function createUI()
 	countdownStroke.Parent = countdownLabel
 end
 
+-- Sound System: Create sound pool for optimized playback
+local function createSoundPool()
+	if not SOUNDS_ENABLED then return end
+	
+	-- Create a container for sounds
+	local soundContainer = Instance.new("Folder")
+	soundContainer.Name = "TypingSounds"
+	soundContainer.Parent = player.PlayerGui
+	
+	-- Create sound instances for each sound type
+	for soundName, soundId in pairs(SOUND_IDS) do
+		local sound = Instance.new("Sound")
+		sound.Name = soundName
+		sound.SoundId = soundId
+		sound.Volume = SOUND_VOLUMES[soundName] or 0.5
+		sound.PlaybackSpeed = 1
+		sound.Parent = soundContainer
+		
+		-- Preload the sound
+		sound:Play()
+		sound:Stop()
+		
+		-- Store in pool
+		soundPool[soundName] = sound
+	end
+end
+
+-- Play sound from pool (optimized - reuses instances)
+local function playSound(soundName, pitchVariation)
+	if not SOUNDS_ENABLED or not soundPool[soundName] then return end
+	
+	local sound = soundPool[soundName]
+	
+	-- Apply pitch variation if specified
+	if pitchVariation then
+		sound.PlaybackSpeed = 1 + (math.random(-pitchVariation, pitchVariation) / 100)
+	else
+		sound.PlaybackSpeed = 1
+	end
+	
+	-- Play sound (stop first if already playing for instant restart)
+	sound:Stop()
+	sound:Play()
+end
+
+-- Play typing sound with cooldown to prevent spam
+local function playTypingSound(isCorrect)
+	local currentTime = tick()
+	
+	-- Cooldown check
+	if currentTime - lastTypingSoundTime < TYPING_SOUND_COOLDOWN then
+		return
+	end
+	
+	lastTypingSoundTime = currentTime
+	
+	-- Play appropriate sound with slight pitch variation for variety
+	if isCorrect then
+		playSound("TYPING_CORRECT", 10) -- ±10% pitch variation
+	else
+		playSound("TYPING_WRONG", 5) -- ±5% pitch variation
+	end
+end
+
+-- Cleanup sound pool
+local function cleanupSounds()
+	if soundPool and next(soundPool) then
+		for _, sound in pairs(soundPool) do
+			if sound then
+				sound:Stop()
+			end
+		end
+	end
+end
+
 -- Load animation
 local function loadAnimation()
 	if animationTrack then return end
@@ -320,6 +420,9 @@ local function onTimeout()
 		})
 		glowReset:Play()
 	end
+
+	-- Play lose sound
+	playSound("ROUND_LOSE")
 
 	-- Show failure message with smooth fade
 	resultLabel.Text = "⏱ Time's up! Try again!"
@@ -403,6 +506,9 @@ local function startCountdown(callback)
 			countdownLabel.Text = tostring(i)
 			countdownLabel.TextSize = 24
 			countdownLabel.TextTransparency = 1
+			
+			-- Play countdown tick sound
+			playSound("COUNTDOWN_TICK")
 
 			-- Smooth fade in + scale up
 			local fadeIn = TweenService:Create(countdownLabel, 
@@ -489,6 +595,7 @@ local function startNewTest()
 	currentWPM = 0
 	timeRemaining = currentTimeLimit
 	canType = false
+	previousTextLength = 0
 
 	-- Reset timer bar with smooth animation
 	timerBar.BackgroundColor3 = Color3.fromRGB(100, 220, 255)
@@ -594,6 +701,9 @@ local function onTextChanged()
 		local finalWPM = calculateWPM(inputText, timeTaken)
 
 		cleanup()
+		
+		-- Play success sound
+		playSound("ROUND_WIN")
 
 		-- Lock input
 		if inputBox then
@@ -642,6 +752,12 @@ local function onTextChanged()
 
 			-- Check accuracy
 			local correct = inputText == string.sub(currentSentence, 1, #inputText)
+			
+			-- Play typing sound when a new character is added (not when deleting)
+			if #inputText > previousTextLength then
+				playTypingSound(correct)
+			end
+			previousTextLength = #inputText
 
 			-- Color code accuracy with smooth transition
 			local targetColor = correct and Color3.fromRGB(100, 255, 150) or Color3.fromRGB(255, 100, 100)
@@ -661,6 +777,7 @@ local function showUI()
 	if not screenGui then
 		createUI()
 		loadAnimation()
+		createSoundPool() -- Initialize sounds
 	end
 
 	-- Reset progression
@@ -696,6 +813,7 @@ function hideUI()
 	if not screenGui then return end
 
 	cleanup()
+	cleanupSounds() -- Stop all sounds
 
 	-- Fade out content first
 	if mainFrame:FindFirstChild("ContentFrame") then

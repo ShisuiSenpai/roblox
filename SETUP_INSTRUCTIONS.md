@@ -16,6 +16,7 @@ This is a Roblox typing test game where players sit in a chair and must type sen
 - 🔒 **Input locking** - prevents typing during countdown and after round ends
 - ✨ **Smooth animations** - everything transitions smoothly with professional polish
 - 💫 **Glow effects** - UI pulses when you start typing for visual feedback
+- 🔊 **Sound system** - optimized audio feedback for typing, countdown, wins, and losses
 
 ---
 
@@ -88,6 +89,43 @@ Chair (Model)
    ```lua
    local ANIMATION_ID = "rbxassetid://123456789"
    ```
+
+---
+
+## 🔊 Sound Setup
+
+**NEW:** The game now has sound effects! Here's how to set them up:
+
+### Quick Setup
+1. Find 5 sounds on Roblox: https://create.roblox.com/marketplace/audio
+2. Get each sound's asset ID from the URL
+3. Open `TypingTestClient` and find lines **35-42**
+4. Replace the sound IDs with yours:
+
+```lua
+local SOUND_IDS = {
+	TYPING_CORRECT = "rbxassetid://YOUR_ID",    -- Correct typing
+	TYPING_WRONG = "rbxassetid://YOUR_ID",      -- Wrong typing
+	COUNTDOWN_TICK = "rbxassetid://YOUR_ID",    -- 3, 2, 1 ticks
+	ROUND_WIN = "rbxassetid://YOUR_ID",         -- Round complete
+	ROUND_LOSE = "rbxassetid://YOUR_ID",        -- Timeout
+}
+```
+
+### Sound Recommendations
+- **Typing Correct:** Soft keyboard click
+- **Typing Wrong:** Short error beep
+- **Countdown Tick:** Clock tick or digital beep
+- **Round Win:** Success chime or level up sound
+- **Round Lose:** Buzzer or game over sound
+
+### Disable Sounds (Optional)
+If you don't want sounds, set line **34** to:
+```lua
+local SOUNDS_ENABLED = false
+```
+
+**For detailed sound setup, see `SOUND_QUICK_START.md`**
 
 ---
 
