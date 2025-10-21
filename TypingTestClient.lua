@@ -655,6 +655,16 @@ local function startCountdown(callback)
 		inputBox.TextEditable = true
 		inputBox.Active = true
 	end
+	
+	-- START TIMER IMMEDIATELY after countdown
+	isTyping = true
+	startTime = tick()
+	
+	-- Start timer update loop
+	if timerConnection then
+		timerConnection:Disconnect()
+	end
+	timerConnection = RunService.Heartbeat:Connect(updateTimer)
 
 	-- Execute callback
 	if callback then
@@ -719,11 +729,8 @@ local function onTextChanged()
 		return
 	end
 
-	-- Start timing on first character
-	if #inputText == 1 and not isTyping then
-		isTyping = true
-		startTime = tick()
-
+	-- Start effects on first character (timer already running from countdown)
+	if #inputText == 1 then
 		-- Glow pulse when typing starts
 		if contentGlow then
 			local glowPulse = TweenService:Create(contentGlow,
@@ -738,12 +745,6 @@ local function onTextChanged()
 		if animationTrack then
 			animationTrack:Play(0.1)
 		end
-
-		-- Start timer update loop
-		if timerConnection then
-			timerConnection:Disconnect()
-		end
-		timerConnection = RunService.Heartbeat:Connect(updateTimer)
 
 		-- Start monitoring typing speed
 		if typingSpeedConnection then
