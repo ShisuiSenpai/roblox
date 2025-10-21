@@ -171,8 +171,21 @@ local function endMatch(winner)
 		matchRemote:FireAllClients("MatchEnd", nil, 0)
 	end
 	
-	-- Reset match after delay
-	task.wait(5)
+	-- Show winner message for 3 seconds
+	task.wait(3)
+	
+	-- Kick all players from chairs to reset
+	for player, data in pairs(playerData) do
+		if player and player.Character then
+			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				-- Unseat the player
+				humanoid.Sit = false
+				task.wait(0.05)
+				humanoid.Jump = true
+			end
+		end
+	end
 	
 	-- Clear all player data
 	activePlayers = {}
@@ -180,9 +193,10 @@ local function endMatch(winner)
 	currentRound = 1
 	currentTimeLimit = INITIAL_TIME
 	
+	-- Reset leaderboard
 	updateLeaderboard()
 	
-	print("🔄 Match reset, ready for new players")
+	print("🔄 Match reset, all players kicked, ready for new match")
 end
 
 -- Check if round should end
