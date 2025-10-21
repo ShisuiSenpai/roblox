@@ -177,19 +177,22 @@ local function endMatch(winner)
 	-- Tell all clients to hide UI and reset
 	matchRemote:FireAllClients("ResetAll")
 	
-	-- Small delay for clients to process
-	task.wait(0.5)
+	-- Tell all chairs to unlock their players
+	matchEvent:Fire("UnlockAll")
+	
+	-- Small delay for unlocking to process
+	task.wait(0.3)
 	
 	-- Kick all players from chairs to reset
 	for player, data in pairs(playerData) do
 		if player and player.Character then
 			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
 			if humanoid then
-				-- Re-enable jumping first
+				-- Re-enable jumping
 				humanoid.JumpPower = 50
 				humanoid.JumpHeight = 7.2
 				
-				-- Unseat the player
+				-- Force unseat
 				humanoid.Sit = false
 				task.wait(0.05)
 				humanoid.Jump = true

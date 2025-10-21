@@ -205,4 +205,15 @@ seat:GetPropertyChangedSignal("Occupant"):Connect(function()
 	end
 end)
 
+-- Listen for unlock all command from match controller
+matchEvent.Event:Connect(function(action)
+	if action == "UnlockAll" then
+		-- Force unlock this chair's player
+		if currentOccupant then
+			print("🔓 Force unlock chair", chairNumber)
+			unlockPlayerFromSeat(currentOccupant)
+		end
+	end
+end)
+
 print("🪑 Chair", chairNumber, "controller ready!")
