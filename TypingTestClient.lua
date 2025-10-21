@@ -478,6 +478,13 @@ local function cleanup()
 	end
 
 	isTyping = false
+	canType = false
+	isCountingDown = false
+	waitingForRound = false
+	
+	-- Reset timers
+	startTime = 0
+	timeRemaining = 0
 end
 
 -- Handle timeout (kicked from chair)
@@ -1070,16 +1077,25 @@ if matchRemote then
 			end
 			
 		elseif action == "ResetAll" then
-			-- Complete reset - hide UI and reset state
+			-- Complete reset - stop EVERYTHING
 			cleanup()
 			cleanupSounds()
+			unlockSeat()
 			
-			-- Reset multiplayer state
+			-- Reset ALL state variables
 			isMultiplayer = false
 			waitingForRound = false
+			isTyping = false
+			isCountingDown = false
+			canType = false
+			currentRound = 1
+			currentTimeLimit = INITIAL_TIME
+			timeRemaining = INITIAL_TIME
+			currentWPM = 0
+			startTime = 0
+			previousTextLength = 0
 			
-			-- Hide UI after brief delay
-			task.wait(0.3)
+			-- Hide UI immediately
 			hideUI()
 		end
 	end)
