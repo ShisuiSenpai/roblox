@@ -1068,6 +1068,19 @@ if matchRemote then
 				end
 				resultLabel.Visible = true
 			end
+			
+		elseif action == "ResetAll" then
+			-- Complete reset - hide UI and reset state
+			cleanup()
+			cleanupSounds()
+			
+			-- Reset multiplayer state
+			isMultiplayer = false
+			waitingForRound = false
+			
+			-- Hide UI after brief delay
+			task.wait(0.3)
+			hideUI()
 		end
 	end)
 end

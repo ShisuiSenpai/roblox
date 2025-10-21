@@ -174,16 +174,31 @@ local function endMatch(winner)
 	-- Show winner message for 3 seconds
 	task.wait(3)
 	
+	-- Tell all clients to hide UI and reset
+	matchRemote:FireAllClients("ResetAll")
+	
+	-- Small delay for clients to process
+	task.wait(0.5)
+	
 	-- Kick all players from chairs to reset
 	for player, data in pairs(playerData) do
 		if player and player.Character then
 			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
 			if humanoid then
+				-- Re-enable jumping first
+				humanoid.JumpPower = 50
+				humanoid.JumpHeight = 7.2
+				
 				-- Unseat the player
 				humanoid.Sit = false
 				task.wait(0.05)
 				humanoid.Jump = true
 			end
+		end
+		
+		-- Hide their UI
+		if typingRemote then
+			typingRemote:FireClient(player, "HideUI")
 		end
 	end
 	
