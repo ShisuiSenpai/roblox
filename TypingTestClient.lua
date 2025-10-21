@@ -112,6 +112,13 @@ local seatLockConnection = nil
 local isSeated = false
 local canLeaveSeat = false
 
+-- Multiplayer variables
+local matchRemote = nil
+local isMultiplayer = false
+local waitingForRound = false
+local lastWPMReport = 0
+local WPM_REPORT_INTERVAL = 0.2 -- Report WPM every 0.2 seconds
+
 -- Create UI
 local function createUI()
 	-- Main ScreenGui
@@ -508,6 +515,11 @@ local function onTimeout()
 		TextTransparency = 0
 	})
 	failFade:Play()
+	
+	-- Report failure to match controller
+	if isMultiplayer and matchRemote then
+		matchRemote:FireServer("PlayerFail")
+	end
 
 	-- Notify server to kick player
 	local remoteEvent = ReplicatedStorage:FindFirstChild("TypingTestRemote")
@@ -673,9 +685,13 @@ local function startCountdown(callback)
 end
 
 -- Start new test
-local function startNewTest()
-	-- Reset
-	currentSentence = SENTENCES[math.random(1, #SENTENCES)]
+local function startNewTest(sentence, timeLimit, round)
+	-- Use provided values or defaults (for solo mode)
+	currentSentence = sentence or SENTENCES[math.random(1, #SENTENCES)]
+	currentTimeLimit = timeLimit or currentTimeLimit
+	currentRound = round or currentRound
+	
+	-- Reset UI
 	sentenceLabel.Text = currentSentence
 	inputBox.Text = ""
 	resultLabel.Visible = false
@@ -806,7 +822,11 @@ local function onTextChanged()
 		end
 
 		-- Show success with smooth animation
-		resultLabel.Text = string.format("✓ %d WPM - Next round!", finalWPM)
+		if isMultiplayer then
+			resultLabel.Text = string.format("✓ %d WPM - Waiting for others...", finalWPM)
+		else
+			resultLabel.Text = string.format("✓ %d WPM - Next round!", finalWPM)
+		end
 		resultLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
 		resultLabel.TextTransparency = 1
 		resultLabel.Visible = true
@@ -819,13 +839,21 @@ local function onTextChanged()
 		})
 		resultFade:Play()
 
-		-- Increase difficulty
-		currentRound = currentRound + 1
-		currentTimeLimit = math.max(MIN_TIME, currentTimeLimit - TIME_REDUCTION)
-
-		-- Auto-continue after brief pause
-		task.wait(2)
-		startNewTest()
+		-- Increase difficulty (solo mode only)
+		if not isMultiplayer then
+			currentRound = currentRound + 1
+			currentTimeLimit = math.max(MIN_TIME, currentTimeLimit - TIME_REDUCTION)
+		end
+		
+		-- Report completion to match controller
+		if isMultiplayer and matchRemote then
+			matchRemote:FireServer("PlayerComplete", finalWPM, timeTaken)
+			waitingForRound = true
+		else
+			-- Solo mode: auto-continue
+			task.wait(2)
+			startNewTest()
+		end
 
 	elseif #inputText > 0 then
 		-- Update stats during typing
@@ -851,21 +879,41 @@ local function onTextChanged()
 			colorTween:Play()
 
 			statsLabel.Text = string.format("%d\nWPM", wpm)
+			
+			-- Report WPM to match controller
+			if isMultiplayer and matchRemote then
+				local currentTime = tick()
+				if currentTime - lastWPMReport >= WPM_REPORT_INTERVAL then
+					matchRemote:FireServer("UpdateWPM", wpm)
+					lastWPMReport = currentTime
+				end
+			end
 		end
 	end
 end
 
 -- Show UI with smooth animation
-local function showUI()
+local function showUI(seat)
 	if not screenGui then
 		createUI()
 		loadAnimation()
 		createSoundPool() -- Initialize sounds
 	end
 
-	-- Reset progression
-	currentRound = 1
-	currentTimeLimit = INITIAL_TIME
+	-- Lock player in seat
+	if seat then
+		lockInSeat(seat)
+	end
+
+	-- Check if we're in multiplayer mode
+	if matchRemote then
+		isMultiplayer = true
+		waitingForRound = true
+	else
+		isMultiplayer = false
+		currentRound = 1
+		currentTimeLimit = INITIAL_TIME
+	end
 
 	-- Smooth slide down with bounce
 	mainFrame.Position = UDim2.new(0.5, 0, -0.3, 0)
@@ -886,9 +934,18 @@ local function showUI()
 		fadeTween:Play()
 	end
 
-	-- Start test
-	task.wait(0.3)
-	startNewTest()
+	-- Start test (only in solo mode)
+	if not isMultiplayer then
+		task.wait(0.3)
+		startNewTest()
+	else
+		-- Show waiting message
+		if resultLabel then
+			resultLabel.Text = "Waiting for players..."
+			resultLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
+			resultLabel.Visible = true
+		end
+	end
 end
 
 -- Hide UI with smooth animation
@@ -932,9 +989,15 @@ local function connectInputBox()
 end
 
 -- Remote event handler
-local function onRemoteEvent(action)
+local function onRemoteEvent(action, seatObject)
 	if action == "ShowUI" then
-		showUI()
+		-- Get the seat from humanoid if not provided
+		local seat = seatObject
+		if not seat and humanoid and humanoid.SeatPart then
+			seat = humanoid.SeatPart
+		end
+		
+		showUI(seat)
 		connectInputBox()
 	elseif action == "HideUI" then
 		hideUI()
@@ -946,6 +1009,9 @@ local remoteEvent = ReplicatedStorage:WaitForChild("TypingTestRemote", 10)
 if remoteEvent then
 	remoteEvent.OnClientEvent:Connect(onRemoteEvent)
 end
+
+-- Initialize match remote for multiplayer
+matchRemote = ReplicatedStorage:FindFirstChild("MatchRemote")
 
 -- Cleanup on character death
 humanoid.Died:Connect(function()
@@ -962,3 +1028,46 @@ player.CharacterAdded:Connect(function(newCharacter)
 	animationTrack = nil
 	loadAnimation()
 end)
+
+-- Listen for multiplayer match events
+if matchRemote then
+	matchRemote.OnClientEvent:Connect(function(action, ...)
+		if action == "StartRound" then
+			local sentence, timeLimit, round = ...
+			isMultiplayer = true
+			waitingForRound = false
+			
+			-- Start the round with server-provided data
+			startNewTest(sentence, timeLimit, round)
+			
+		elseif action == "LobbyCountdown" then
+			local timeLeft = ...
+			if resultLabel and resultLabel.Parent then
+				resultLabel.Text = "Starting in " .. timeLeft .. "..."
+				resultLabel.Visible = true
+			end
+			
+		elseif action == "MatchStarting" then
+			if resultLabel and resultLabel.Parent then
+				resultLabel.Text = "Match starting..."
+				resultLabel.Visible = true
+			end
+			
+		elseif action == "MatchEnd" then
+			local winnerName = ...
+			if resultLabel and resultLabel.Parent then
+				if winnerName == player.Name then
+					resultLabel.Text = "🏆 YOU WIN! 🏆"
+					resultLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+				elseif winnerName then
+					resultLabel.Text = winnerName .. " wins!"
+					resultLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+				else
+					resultLabel.Text = "Match ended"
+					resultLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+				end
+				resultLabel.Visible = true
+			end
+		end
+	end)
+end

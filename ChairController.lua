@@ -1,28 +1,26 @@
 --[[
-	Chair Controller - Server Script with Seat Lock
+	Chair Controller - Multiplayer Version
 	
 	SETUP:
-	Place this Script (NOT LocalScript) inside the Chair model in Workspace
-	
-	Required hierarchy:
-	Chair (Model)
-	  ├─ Seat (Seat)
-	  ├─ Part1 (Part - contains ProximityPrompt)
-	  │   └─ ProximityPrompt
-	  └─ ChairController (This Script)
+	Place this Script in EACH of your 6 chairs
+	Each chair should be named Chair1, Chair2, etc. and be in "TypingChairs" folder
 --]]
 
 -- Services
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Get components
 local chair = script.Parent
 local seat = chair:WaitForChild("Seat")
 local proximityPrompt = chair:WaitForChild("Part1"):WaitForChild("ProximityPrompt")
 
+-- Get chair number from name (Chair1 = 1, Chair2 = 2, etc.)
+local chairNumber = tonumber(chair.Name:match("%d+")) or 1
+
 -- Configuration
-proximityPrompt.ActionText = "Sit"
-proximityPrompt.ObjectText = "Typing Chair"
+proximityPrompt.ActionText = "Join Race"
+proximityPrompt.ObjectText = "Chair " .. chairNumber
 proximityPrompt.HoldDuration = 0
 proximityPrompt.MaxActivationDistance = 10
 
@@ -31,15 +29,72 @@ local currentOccupant = nil
 local seatLocked = false
 local reseatConnection = nil
 
--- Function to unseat player
-local function unseatPlayer(player)
+-- Remote Events
+local matchRemote = ReplicatedStorage:WaitForChild("MatchRemote")
+local typingRemote = ReplicatedStorage:FindFirstChild("TypingTestRemote")
+if not typingRemote then
+	typingRemote = Instance.new("RemoteEvent")
+	typingRemote.Name = "TypingTestRemote"
+	typingRemote.Parent = ReplicatedStorage
+end
+
+-- Function to lock player in seat
+local function lockPlayerToSeat(player)
 	if not player or not player.Character then return end
 	
-	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-	if humanoid then
-		humanoid.Sit = false
-		humanoid.Jump = true
+	local character = player.Character
+	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	
+	if not humanoidRootPart or not humanoid then return end
+	
+	seatLocked = true
+	
+	-- Disable jumping
+	humanoid.JumpPower = 0
+	humanoid.JumpHeight = 0
+	humanoid.Sit = true
+	
+	-- Monitor and keep locked
+	if reseatConnection then
+		reseatConnection:Disconnect()
 	end
+	
+	reseatConnection = RunService.Heartbeat:Connect(function()
+		if seatLocked and currentOccupant == player then
+			if humanoid and humanoid.Health > 0 then
+				humanoid.JumpPower = 0
+				humanoid.JumpHeight = 0
+				
+				if not humanoid.Sit or seat.Occupant ~= humanoid then
+					humanoid.Sit = true
+					seat:Sit(humanoid)
+				end
+			end
+		end
+	end)
+	
+	print("🔒 Player", player.Name, "locked to chair", chairNumber)
+end
+
+-- Function to unlock player from seat
+local function unlockPlayerFromSeat(player)
+	seatLocked = false
+	
+	if reseatConnection then
+		reseatConnection:Disconnect()
+		reseatConnection = nil
+	end
+	
+	if player and player.Character then
+		local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.JumpPower = 50
+			humanoid.JumpHeight = 7.2
+		end
+	end
+	
+	print("🔓 Player unlocked from chair", chairNumber)
 end
 
 -- Function to sit player
@@ -56,133 +111,86 @@ local function sitPlayer(player)
 	-- Sit the player
 	seat:Sit(humanoid)
 	currentOccupant = player
-	seatLocked = true
 	
-	-- Disable jumping for the humanoid
-	humanoid.JumpPower = 0
-	humanoid.JumpHeight = 0
+	-- Wait for seat to register
+	task.wait(0.1)
 	
-	-- Set humanoid to seated state and lock it
-	humanoid.Sit = true
-	
-	-- Monitor and force player to stay seated (server-side enforcement)
-	if reseatConnection then
-		reseatConnection:Disconnect()
-	end
-	
-	reseatConnection = RunService.Heartbeat:Connect(function()
-		if seatLocked and currentOccupant == player then
-			-- Force seated state
-			if humanoid and humanoid.Health > 0 then
-				-- Prevent jumping every frame
-				humanoid.JumpPower = 0
-				humanoid.JumpHeight = 0
-				
-				-- If not sitting anymore, force back
-				if not humanoid.Sit or seat.Occupant ~= humanoid then
-					humanoid.Sit = true
-					seat:Sit(humanoid)
-				end
-			end
-		end
-	end)
+	-- Lock them
+	lockPlayerToSeat(player)
 
-	-- Fire event to client to show UI (send seat reference)
-	local remoteEvent = game.ReplicatedStorage:FindFirstChild("TypingTestRemote")
-	if remoteEvent then
-		remoteEvent:FireClient(player, "ShowUI", seat)
+	-- Notify match controller
+	matchRemote:FireServer("PlayerJoin", chairNumber)
+	
+	-- Fire event to client to show UI
+	typingRemote:FireClient(player, "ShowUI", seat)
+end
+
+-- Function to unseat player
+local function unseatPlayer(player)
+	if not player or not player.Character then return end
+	
+	-- Unlock first
+	unlockPlayerFromSeat(player)
+	
+	-- Then unseat
+	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.Sit = false
+		task.wait(0.1)
+		humanoid.Jump = true
 	end
 end
 
 -- Function to handle player leaving seat
 local function onSeatLeft()
-	-- Only allow leaving if seat is unlocked
-	if not seatLocked then
-		if currentOccupant then
-			local remoteEvent = game.ReplicatedStorage:FindFirstChild("TypingTestRemote")
-			if remoteEvent then
-				remoteEvent:FireClient(currentOccupant, "HideUI")
-			end
-			currentOccupant = nil
-		end
-	else
-		-- Seat is locked - force player back
-		if currentOccupant and currentOccupant.Character then
-			local humanoid = currentOccupant.Character:FindFirstChildOfClass("Humanoid")
-			if humanoid and humanoid.Health > 0 then
-				task.wait(0.05)
-				humanoid.Sit = true
-				seat:Sit(humanoid)
-			end
-		end
+	if currentOccupant then
+		-- Always unlock when leaving
+		unlockPlayerFromSeat(currentOccupant)
+		
+		-- Notify match controller
+		matchRemote:FireServer("PlayerLeave")
+		
+		-- Hide UI
+		typingRemote:FireClient(currentOccupant, "HideUI")
+		
+		currentOccupant = nil
 	end
 end
 
--- Handle events from client
-local function onServerEvent(player, action)
+-- Handle events from typing client
+typingRemote.OnServerEvent:Connect(function(player, action)
+	if player ~= currentOccupant then return end
+	
 	if action == "Timeout" then
 		-- Unlock and kick player from chair
-		if player == currentOccupant then
-			seatLocked = false
-			
-			-- Stop monitoring
-			if reseatConnection then
-				reseatConnection:Disconnect()
-				reseatConnection = nil
-			end
-			
-			-- Re-enable jumping
-			if player.Character then
-				local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-				if humanoid then
-					humanoid.JumpPower = 50
-					humanoid.JumpHeight = 7.2
-				end
-			end
-			
-			unseatPlayer(player)
-			currentOccupant = nil
-		end
+		print("⏱ Timeout for", player.Name)
+		unseatPlayer(player)
+		currentOccupant = nil
+		
 	elseif action == "UnlockSeat" then
 		-- Client requests unlock (death/UI close)
-		if player == currentOccupant then
-			seatLocked = false
-			
-			-- Stop monitoring
-			if reseatConnection then
-				reseatConnection:Disconnect()
-				reseatConnection = nil
-			end
-			
-			-- Re-enable jumping
-			if player.Character then
-				local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-				if humanoid then
-					humanoid.JumpPower = 50
-					humanoid.JumpHeight = 7.2
-				end
-			end
-		end
+		unlockPlayerFromSeat(player)
 	end
-end
+end)
 
 -- Connect proximity prompt
 proximityPrompt.Triggered:Connect(sitPlayer)
 
 -- Monitor seat occupancy
 seat:GetPropertyChangedSignal("Occupant"):Connect(function()
-	if not seat.Occupant then
+	if not seat.Occupant and not seatLocked then
 		onSeatLeft()
+	elseif not seat.Occupant and seatLocked and currentOccupant then
+		-- Force back if locked
+		task.wait(0.05)
+		if currentOccupant and currentOccupant.Character then
+			local humanoid = currentOccupant.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				humanoid.Sit = true
+				seat:Sit(humanoid)
+			end
+		end
 	end
 end)
 
--- Create RemoteEvent if it doesn't exist
-local remoteEvent = game.ReplicatedStorage:FindFirstChild("TypingTestRemote")
-if not remoteEvent then
-	remoteEvent = Instance.new("RemoteEvent")
-	remoteEvent.Name = "TypingTestRemote"
-	remoteEvent.Parent = game.ReplicatedStorage
-end
-
--- Connect server event handler
-remoteEvent.OnServerEvent:Connect(onServerEvent)
+print("🪑 Chair", chairNumber, "controller ready!")

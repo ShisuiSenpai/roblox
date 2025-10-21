@@ -149,6 +149,33 @@ local function startRound()
 	print("🎯 Round", currentRound, "started - Time:", currentTimeLimit, "s")
 end
 
+-- End match and declare winner (MOVED ABOVE checkRoundEnd to fix orange warning)
+local function endMatch(winner)
+	matchInProgress = false
+	roundInProgress = false
+	
+	if winner then
+		print("🏆 Winner:", winner.Name)
+		matchRemote:FireAllClients("MatchEnd", winner.Name, winner.UserId)
+	else
+		print("🤝 Match ended in a draw")
+		matchRemote:FireAllClients("MatchEnd", nil, 0)
+	end
+	
+	-- Reset match after delay
+	task.wait(5)
+	
+	-- Clear all player data
+	activePlayers = {}
+	playerData = {}
+	currentRound = 1
+	currentTimeLimit = INITIAL_TIME
+	
+	updateLeaderboard()
+	
+	print("🔄 Match reset, ready for new players")
+end
+
 -- Check if round should end
 local function checkRoundEnd()
 	local aliveCount = 0
@@ -220,32 +247,7 @@ function endRound()
 	end
 end
 
--- End match and declare winner
-local function endMatch(winner)
-	matchInProgress = false
-	roundInProgress = false
-	
-	if winner then
-		print("🏆 Winner:", winner.Name)
-		matchRemote:FireAllClients("MatchEnd", winner.Name, winner.UserId)
-	else
-		print("🤝 Match ended in a draw")
-		matchRemote:FireAllClients("MatchEnd", nil, 0)
-	end
-	
-	-- Reset match after delay
-	task.wait(5)
-	
-	-- Clear all player data
-	activePlayers = {}
-	playerData = {}
-	currentRound = 1
-	currentTimeLimit = INITIAL_TIME
-	
-	updateLeaderboard()
-	
-	print("🔄 Match reset, ready for new players")
-end
+-- endMatch function moved above checkRoundEnd (already defined there)
 
 -- Start match
 local function startMatch()
