@@ -14,6 +14,9 @@ MULTIPLAYER TYPING RACE - SETUP
    - Make sure you have: MatchRemote (RemoteEvent)
    - Make sure you have: TypingTestRemote (RemoteEvent)
 
+5. ServerScriptService
+   - MatchBindable (BindableEvent) will be auto-created by scripts
+
 SETTINGS:
 - Minimum players: 2 (in MatchController.lua line 15)
 - Lobby wait: 10 seconds (in MatchController.lua line 17)

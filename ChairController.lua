@@ -29,8 +29,18 @@ local currentOccupant = nil
 local seatLocked = false
 local reseatConnection = nil
 
+-- Get server events
+local ServerScriptService = game:GetService("ServerScriptService")
+
+-- Create/Get BindableEvent for server-to-server communication
+local matchEvent = ServerScriptService:FindFirstChild("MatchBindable")
+if not matchEvent then
+	matchEvent = Instance.new("BindableEvent")
+	matchEvent.Name = "MatchBindable"
+	matchEvent.Parent = ServerScriptService
+end
+
 -- Remote Events
-local matchRemote = ReplicatedStorage:WaitForChild("MatchRemote")
 local typingRemote = ReplicatedStorage:FindFirstChild("TypingTestRemote")
 if not typingRemote then
 	typingRemote = Instance.new("RemoteEvent")
@@ -118,8 +128,8 @@ local function sitPlayer(player)
 	-- Lock them
 	lockPlayerToSeat(player)
 
-	-- Notify match controller
-	matchRemote:FireServer("PlayerJoin", chairNumber)
+	-- Notify match controller (server-to-server)
+	matchEvent:Fire("PlayerJoin", player, chairNumber)
 	
 	-- Fire event to client to show UI
 	typingRemote:FireClient(player, "ShowUI", seat)
@@ -144,14 +154,16 @@ end
 -- Function to handle player leaving seat
 local function onSeatLeft()
 	if currentOccupant then
-		-- Always unlock when leaving
-		unlockPlayerFromSeat(currentOccupant)
+		local player = currentOccupant
 		
-		-- Notify match controller
-		matchRemote:FireServer("PlayerLeave")
+		-- Always unlock when leaving
+		unlockPlayerFromSeat(player)
+		
+		-- Notify match controller (server-to-server)
+		matchEvent:Fire("PlayerLeave", player)
 		
 		-- Hide UI
-		typingRemote:FireClient(currentOccupant, "HideUI")
+		typingRemote:FireClient(player, "HideUI")
 		
 		currentOccupant = nil
 	end

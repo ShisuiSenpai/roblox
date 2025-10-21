@@ -42,7 +42,15 @@ local INITIAL_TIME = 15
 local MIN_TIME = 5
 local TIME_REDUCTION = 1
 
--- Remote Events
+-- Create/Get BindableEvent for server-to-server communication
+local matchEvent = ServerScriptService:FindFirstChild("MatchBindable")
+if not matchEvent then
+	matchEvent = Instance.new("BindableEvent")
+	matchEvent.Name = "MatchBindable"
+	matchEvent.Parent = ServerScriptService
+end
+
+-- Remote Events (for server-to-client communication)
 local matchRemote = ReplicatedStorage:WaitForChild("MatchRemote")
 local typingRemote = ReplicatedStorage:FindFirstChild("TypingTestRemote")
 if not typingRemote then
@@ -371,16 +379,20 @@ local function onPlayerWPMUpdate(player, wpm)
 	updateLeaderboard()
 end
 
--- Listen to match events from clients
-matchRemote.OnServerEvent:Connect(function(player, action, ...)
+-- Listen to chair events (server-to-server via BindableEvent)
+matchEvent.Event:Connect(function(action, player, ...)
 	if action == "PlayerJoin" then
 		local chairNumber = ...
 		onPlayerJoin(player, chairNumber)
 		
 	elseif action == "PlayerLeave" then
 		onPlayerLeave(player)
-		
-	elseif action == "PlayerComplete" then
+	end
+end)
+
+-- Listen to player events from clients (via RemoteEvent)
+matchRemote.OnServerEvent:Connect(function(player, action, ...)
+	if action == "PlayerComplete" then
 		local wpm, timeTaken = ...
 		onPlayerComplete(player, wpm, timeTaken)
 		
