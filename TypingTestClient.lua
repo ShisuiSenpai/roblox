@@ -1077,10 +1077,37 @@ if matchRemote then
 			end
 			
 		elseif action == "ResetAll" then
-			-- Complete reset - stop EVERYTHING
-			cleanup()
+			-- FORCE STOP EVERYTHING
+			
+			-- Stop all connections FIRST
+			if typingSpeedConnection then
+				typingSpeedConnection:Disconnect()
+				typingSpeedConnection = nil
+			end
+			if timerConnection then
+				timerConnection:Disconnect()
+				timerConnection = nil
+			end
+			if seatLockConnection then
+				seatLockConnection:Disconnect()
+				seatLockConnection = nil
+			end
+			
+			-- Stop animation
+			if animationTrack and animationTrack.IsPlaying then
+				animationTrack:Stop(0)
+			end
+			
+			-- Stop all sounds
 			cleanupSounds()
-			unlockSeat()
+			
+			-- Unlock seat
+			canLeaveSeat = true
+			isSeated = false
+			if humanoid then
+				humanoid.JumpPower = 50
+				humanoid.JumpHeight = 7.2
+			end
 			
 			-- Reset ALL state variables
 			isMultiplayer = false
@@ -1090,13 +1117,31 @@ if matchRemote then
 			canType = false
 			currentRound = 1
 			currentTimeLimit = INITIAL_TIME
-			timeRemaining = INITIAL_TIME
+			timeRemaining = 0
 			currentWPM = 0
 			startTime = 0
 			previousTextLength = 0
+			lastTypingTime = 0
+			lastWPMReport = 0
+			currentSeat = nil
 			
-			-- Hide UI immediately
-			hideUI()
+			-- Destroy UI completely
+			if screenGui then
+				screenGui:Destroy()
+				screenGui = nil
+				mainFrame = nil
+				sentenceLabel = nil
+				inputBox = nil
+				statsLabel = nil
+				resultLabel = nil
+				timerBar = nil
+				timerBackground = nil
+				roundLabel = nil
+				countdownLabel = nil
+				contentGlow = nil
+			end
+			
+			print("🔄 Client fully reset!")
 		end
 	end)
 end

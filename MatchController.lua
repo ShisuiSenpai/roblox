@@ -231,12 +231,7 @@ local function checkRoundEnd()
 		end
 	end
 	
-	-- Round ends if everyone completed or failed
-	if typingCount == 0 and aliveCount > 0 then
-		endRound()
-	end
-	
-	-- Check for winner (only 1 alive)
+	-- Check for winner FIRST (only 1 alive) - prevents extra rounds
 	if aliveCount == 1 then
 		local winner = nil
 		for player, data in pairs(playerData) do
@@ -248,10 +243,17 @@ local function checkRoundEnd()
 		
 		if winner then
 			endMatch(winner)
+			return -- Exit early, don't start new round
 		end
 	elseif aliveCount == 0 then
 		-- Everyone died, draw
 		endMatch(nil)
+		return -- Exit early
+	end
+	
+	-- Round ends if everyone completed or failed (and more than 1 alive)
+	if typingCount == 0 and aliveCount > 1 then
+		endRound()
 	end
 end
 
