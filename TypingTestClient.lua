@@ -1004,14 +1004,14 @@ local function onRemoteEvent(action, seatObject)
 	end
 end
 
+-- Initialize match remote for multiplayer FIRST
+matchRemote = ReplicatedStorage:FindFirstChild("MatchRemote")
+
 -- Wait for remote event
 local remoteEvent = ReplicatedStorage:WaitForChild("TypingTestRemote", 10)
 if remoteEvent then
 	remoteEvent.OnClientEvent:Connect(onRemoteEvent)
 end
-
--- Initialize match remote for multiplayer
-matchRemote = ReplicatedStorage:FindFirstChild("MatchRemote")
 
 -- Cleanup on character death
 humanoid.Died:Connect(function()
