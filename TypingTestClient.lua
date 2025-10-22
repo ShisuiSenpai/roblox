@@ -911,6 +911,8 @@ local function showLobbyMessage()
 	mainFrame.Position = UDim2.new(0.5, 0, -0.3, 0) -- Off-screen
 	
 	if resultLabel then
+		-- Temporarily reparent to screenGui so it shows independently of mainFrame
+		resultLabel.Parent = screenGui
 		resultLabel.Text = "Waiting for players..."
 		resultLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
 		resultLabel.TextSize = 20
@@ -918,6 +920,7 @@ local function showLobbyMessage()
 		resultLabel.Visible = true
 		resultLabel.Position = UDim2.new(0.5, 0, 0.5, 0) -- Center of screen
 		resultLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+		resultLabel.Size = UDim2.new(0, 400, 0, 40)
 		
 		-- Fade in the message
 		local fadeTween = TweenService:Create(resultLabel,
@@ -985,10 +988,12 @@ local function showTypingUI()
 	print("✨ Showing typing UI...")
 	if not mainFrame then return end
 	
-	-- Reset result label position
+	-- Reset result label position and reparent back to mainFrame
 	if resultLabel then
+		resultLabel.Parent = mainFrame -- Move back to mainFrame
 		resultLabel.Position = UDim2.new(0, 0, 0, 115)
 		resultLabel.AnchorPoint = Vector2.new(0, 0)
+		resultLabel.Size = UDim2.new(1, 0, 0, 30)
 		resultLabel.Visible = false
 	end
 	
@@ -1113,15 +1118,28 @@ if matchRemote then
 		elseif action == "LobbyCountdown" then
 			local timeLeft = ...
 			if resultLabel then
+				-- Ensure it's still parented to screenGui and centered
+				resultLabel.Parent = screenGui
+				resultLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+				resultLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+				resultLabel.Size = UDim2.new(0, 400, 0, 40)
 				resultLabel.Text = "Starting in " .. timeLeft .. "..."
 				resultLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
 				resultLabel.TextSize = 20
+				resultLabel.TextTransparency = 0
 				resultLabel.Visible = true
 			end
 			
 		elseif action == "MatchStarting" then
-			if resultLabel and resultLabel.Parent then
+			if resultLabel then
+				-- Keep it centered on screen
+				resultLabel.Parent = screenGui
+				resultLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+				resultLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+				resultLabel.Size = UDim2.new(0, 400, 0, 40)
 				resultLabel.Text = "Match starting..."
+				resultLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+				resultLabel.TextTransparency = 0
 				resultLabel.Visible = true
 			end
 			
