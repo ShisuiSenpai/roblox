@@ -982,6 +982,7 @@ end
 
 -- Show typing UI when match actually starts (multiplayer)
 local function showTypingUI()
+	print("✨ Showing typing UI...")
 	if not mainFrame then return end
 	
 	-- Reset result label position
@@ -1099,6 +1100,12 @@ if matchRemote then
 			local sentence, timeLimit, round = ...
 			isMultiplayer = true
 			waitingForRound = false
+			
+			-- If first round, show the typing UI with animation
+			if round == 1 then
+				showTypingUI()
+				task.wait(0.5) -- Wait for UI to slide in
+			end
 			
 			-- Start the round with server-provided data
 			startNewTest(sentence, timeLimit, round)
