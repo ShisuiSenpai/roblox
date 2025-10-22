@@ -174,13 +174,16 @@ local function endMatch(winner)
 	-- Show winner message for 3 seconds
 	task.wait(3)
 	
-	-- Tell all clients to hide UI and reset
-	matchRemote:FireAllClients("ResetAll")
-	
-	-- Tell all chairs to unlock their players
+	-- Tell all chairs to unlock their players FIRST
 	matchEvent:Fire("UnlockAll")
 	
 	-- Small delay for unlocking to process
+	task.wait(0.2)
+	
+	-- Tell all clients to hide UI and reset
+	matchRemote:FireAllClients("ResetAll")
+	
+	-- Another small delay for UI cleanup
 	task.wait(0.3)
 	
 	-- Kick all players from chairs to reset

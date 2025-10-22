@@ -899,7 +899,36 @@ local function onTextChanged()
 	end
 end
 
--- Show UI with smooth animation
+-- Show lobby message (waiting for match to start)
+local function showLobbyMessage()
+	if not screenGui then
+		createUI()
+		loadAnimation()
+		createSoundPool()
+	end
+	
+	-- Keep main frame hidden, only show result label for countdown
+	mainFrame.Position = UDim2.new(0.5, 0, -0.3, 0) -- Off-screen
+	
+	if resultLabel then
+		resultLabel.Text = "Waiting for players..."
+		resultLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
+		resultLabel.TextSize = 20
+		resultLabel.TextTransparency = 1
+		resultLabel.Visible = true
+		resultLabel.Position = UDim2.new(0.5, 0, 0.5, 0) -- Center of screen
+		resultLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+		
+		-- Fade in the message
+		local fadeTween = TweenService:Create(resultLabel,
+			TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+			TextTransparency = 0
+		})
+		fadeTween:Play()
+	end
+end
+
+-- Show full typing UI with smooth animation
 local function showUI(seat)
 	if not screenGui then
 		createUI()
@@ -916,12 +945,17 @@ local function showUI(seat)
 	if matchRemote then
 		isMultiplayer = true
 		waitingForRound = true
+		
+		-- In multiplayer, just show lobby message, don't show full UI yet
+		showLobbyMessage()
+		return -- Exit early, wait for match to start
 	else
 		isMultiplayer = false
 		currentRound = 1
 		currentTimeLimit = INITIAL_TIME
 	end
 
+	-- Solo mode: Show full UI immediately
 	-- Smooth slide down with bounce
 	mainFrame.Position = UDim2.new(0.5, 0, -0.3, 0)
 	local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -942,16 +976,38 @@ local function showUI(seat)
 	end
 
 	-- Start test (only in solo mode)
-	if not isMultiplayer then
-		task.wait(0.3)
-		startNewTest()
-	else
-		-- Show waiting message
-		if resultLabel then
-			resultLabel.Text = "Waiting for players..."
-			resultLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
-			resultLabel.Visible = true
-		end
+	task.wait(0.3)
+	startNewTest()
+end
+
+-- Show typing UI when match actually starts (multiplayer)
+local function showTypingUI()
+	if not mainFrame then return end
+	
+	-- Reset result label position
+	if resultLabel then
+		resultLabel.Position = UDim2.new(0, 0, 0, 115)
+		resultLabel.AnchorPoint = Vector2.new(0, 0)
+		resultLabel.Visible = false
+	end
+	
+	-- Smooth slide down with bounce
+	mainFrame.Position = UDim2.new(0.5, 0, -0.3, 0)
+	local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(mainFrame, tweenInfo, {
+		Position = UDim2.new(0.5, 0, 0.02, 0)
+	})
+	tween:Play()
+	
+	-- Fade in effect for content
+	if mainFrame:FindFirstChild("ContentFrame") then
+		local contentFrame = mainFrame.ContentFrame
+		contentFrame.BackgroundTransparency = 1
+		local fadeTween = TweenService:Create(contentFrame,
+			TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+			BackgroundTransparency = 0.7
+		})
+		fadeTween:Play()
 	end
 end
 
@@ -1049,8 +1105,10 @@ if matchRemote then
 			
 		elseif action == "LobbyCountdown" then
 			local timeLeft = ...
-			if resultLabel and resultLabel.Parent then
+			if resultLabel then
 				resultLabel.Text = "Starting in " .. timeLeft .. "..."
+				resultLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
+				resultLabel.TextSize = 20
 				resultLabel.Visible = true
 			end
 			
