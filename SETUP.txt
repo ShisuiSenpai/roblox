@@ -1,0 +1,30 @@
+MULTIPLAYER TYPING RACE - SETUP
+
+1. ServerScriptService
+   - Add: MatchController.lua
+
+2. StarterPlayerScripts
+   - Replace: TypingTestClient.lua (already updated for multiplayer)
+   - Add: LeaderboardClient.lua
+
+3. Each of your 6 chairs in "TypingChairs" folder
+   - Replace: ChairController.lua (already updated for multiplayer)
+
+4. ReplicatedStorage
+   - Make sure you have: MatchRemote (RemoteEvent)
+   - Make sure you have: TypingTestRemote (RemoteEvent)
+
+5. ServerScriptService
+   - MatchBindable (BindableEvent) will be auto-created by scripts
+
+SETTINGS:
+- Minimum players: 2 (in MatchController.lua line 15)
+- Lobby wait: 10 seconds (in MatchController.lua line 17)
+- Animation ID: Line 24 in TypingTestClient.lua
+- Sound IDs: Lines 37-43 in TypingTestClient.lua
+
+TESTING:
+- Solo (1 player): Works as before, starts after 10 seconds
+- 2+ players: Lobby countdown, then synchronized race!
+
+DONE! All scripts ready for 6-player competitive typing race!
