@@ -915,17 +915,18 @@ local function showLobbyMessage()
 		resultLabel.Parent = screenGui
 		resultLabel.Text = "Waiting for players..."
 		resultLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
-		resultLabel.TextSize = 20
+		resultLabel.TextSize = 18
 		resultLabel.TextTransparency = 1
 		resultLabel.Visible = true
-		resultLabel.Position = UDim2.new(0.5, 0, 0.5, 0) -- Center of screen
+		resultLabel.Position = UDim2.new(0.5, 0, 0.25, 0) -- Higher up on screen
 		resultLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-		resultLabel.Size = UDim2.new(0, 400, 0, 40)
+		resultLabel.Size = UDim2.new(0, 500, 0, 50)
 		
-		-- Fade in the message
+		-- Smooth fade in with gentle scale
 		local fadeTween = TweenService:Create(resultLabel,
-			TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
-			TextTransparency = 0
+			TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			TextTransparency = 0,
+			TextSize = 24
 		})
 		fadeTween:Play()
 	end
