@@ -12,11 +12,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local mouse = player:GetMouse()
+
+-- Disable the hotbar/inventory UI
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
 -- References to your models
 local holsteredSwordTemplate = ReplicatedStorage:WaitForChild("HolsteredSword")
@@ -42,13 +46,13 @@ local HOLSTER_SETTINGS = {
 
 local ATTACK_SETTINGS = {
 	-- How long the sword stays in hand during attack (seconds)
-	AttackDuration = 0.5,
+	AttackDuration = 0.3,
 	
 	-- Animation ID (replace with your sword slash animation)
 	AnimationId = "rbxassetid://0", -- Replace 0 with your animation ID
 	
 	-- Cooldown between attacks (seconds)
-	AttackCooldown = 1,
+	AttackCooldown = 0.4,
 	
 	-- Damage settings (if you want to implement damage)
 	Damage = 10,
