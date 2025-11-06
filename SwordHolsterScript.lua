@@ -28,12 +28,12 @@ local HOLSTER_SETTINGS = {
 	AttachmentPart = "UpperTorso", -- Change this to your preferred body part
 	
 	-- Position offset from the attachment part (X, Y, Z)
-	-- Converted from Tool Grip Position: (0, -0.7, -0.5)
+	-- Tweak these values to move the sword around your body
 	PositionOffset = Vector3.new(0, -0.7, -0.5),
 	
 	-- Rotation in degrees (X, Y, Z)
-	-- Converted from Tool Grip Orientation: (25, -90, 180)
-	RotationOffset = Vector3.new(25, -90, 180),
+	-- Based on your manual positioning: CFrame Orientation (0, 90, 110)
+	RotationOffset = Vector3.new(0, 90, 110),
 	
 	-- Visual settings
 	UseTransparency = true, -- If true, uses transparency. If false, completely removes/creates the holster
