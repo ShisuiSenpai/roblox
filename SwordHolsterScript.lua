@@ -28,12 +28,12 @@ local HOLSTER_SETTINGS = {
 	AttachmentPart = "UpperTorso", -- Change this to your preferred body part
 	
 	-- Position offset from the attachment part (X, Y, Z)
-	-- X = Left/Right, Y = Up/Down, Z = Forward/Back
-	PositionOffset = Vector3.new(0.5, 0.5, -0.8), -- Adjust for placement (back-right shoulder area)
+	-- Converted from Tool Grip Position: (0, -0.7, -0.5)
+	PositionOffset = Vector3.new(0, -0.7, -0.5),
 	
 	-- Rotation in degrees (X, Y, Z)
-	-- Play with these values to get the angle you want
-	RotationOffset = Vector3.new(45, 0, -25), -- Tilted angle for back holster
+	-- Converted from Tool Grip Orientation: (25, -90, 180)
+	RotationOffset = Vector3.new(25, -90, 180),
 	
 	-- Visual settings
 	UseTransparency = true, -- If true, uses transparency. If false, completely removes/creates the holster
