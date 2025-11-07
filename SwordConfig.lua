@@ -17,11 +17,12 @@ local SwordConfig = {}
 -- ========================================
 
 SwordConfig.Swords = {
-	-- SWORD 1: Your Original Sword
-	["Sword"] = {
+	-- SWORD 1: Normal Sword
+	["NormalSword"] = {
 		-- Model names in ReplicatedStorage
-		HolsteredModelName = "HolsteredSword",
-		ToolName = "Sword",
+		HolsteredModelName = "HolsteredSwordNormal",
+		SwordPartName = "NormalSword", -- The part inside the holstered model
+		ToolName = "NormalSword",
 		
 		-- Holster settings
 		Holster = {
@@ -44,10 +45,11 @@ SwordConfig.Swords = {
 		Keybind = Enum.KeyCode.One, -- Press "1" to equip
 	},
 	
-	-- SWORD 2: Example Second Sword
-	["Sword2"] = {
-		HolsteredModelName = "HolsteredSword2",
-		ToolName = "Sword2",
+	-- SWORD 2: Ice Sword
+	["IceSword"] = {
+		HolsteredModelName = "HolsteredSwordIce",
+		SwordPartName = "IceSword", -- The part inside the holstered model
+		ToolName = "IceSword",
 		
 		Holster = {
 			AttachmentPart = "Torso",
@@ -57,37 +59,14 @@ SwordConfig.Swords = {
 		},
 		
 		Attack = {
-			AttackDuration = 0.4,
-			AttackCooldown = 0.5,
+			AttackDuration = 0.3,
+			AttackCooldown = 0.4,
 			AnimationId = "rbxassetid://0",
-			Damage = 15,
-			AttackRange = 12,
+			Damage = 12,
+			AttackRange = 10,
 		},
 		
 		Keybind = Enum.KeyCode.Two, -- Press "2" to equip
-	},
-	
-	-- SWORD 3: Example Third Sword
-	["Sword3"] = {
-		HolsteredModelName = "HolsteredSword3",
-		ToolName = "Sword3",
-		
-		Holster = {
-			AttachmentPart = "UpperTorso",
-			PositionOffset = Vector3.new(0, 0.5, -0.9), -- Back holster
-			RotationOffset = Vector3.new(0, 0, 0),
-			TransparencyValue = 0,
-		},
-		
-		Attack = {
-			AttackDuration = 0.25,
-			AttackCooldown = 0.35,
-			AnimationId = "rbxassetid://0",
-			Damage = 12,
-			AttackRange = 11,
-		},
-		
-		Keybind = Enum.KeyCode.Three, -- Press "3" to equip
 	},
 	
 	--[[
@@ -95,6 +74,7 @@ SwordConfig.Swords = {
 	
 	["SwordName"] = {
 		HolsteredModelName = "HolsteredSwordName",
+		SwordPartName = "SwordPartName", -- The part inside the holstered model
 		ToolName = "SwordToolName",
 		
 		Holster = {
@@ -112,7 +92,7 @@ SwordConfig.Swords = {
 			AttackRange = 10,
 		},
 		
-		Keybind = Enum.KeyCode.Four, -- Press "4" to equip
+		Keybind = Enum.KeyCode.Three, -- Press "3" to equip
 	},
 	]]
 }
@@ -122,7 +102,7 @@ SwordConfig.Swords = {
 -- ========================================
 
 -- Which sword the player starts with (must match a key in SwordConfig.Swords)
-SwordConfig.DefaultSword = "Sword"
+SwordConfig.DefaultSword = "NormalSword"
 
 -- Should multiple swords be visible at once? (all holstered on body)
 SwordConfig.ShowAllSwords = false -- Set to true to show all swords holstered

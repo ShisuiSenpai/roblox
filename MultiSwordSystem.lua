@@ -95,10 +95,10 @@ local function createHolsteredSword(swordName, config)
 	-- Clone the HolsteredSword model
 	local holsteredSword = holsteredTemplate:Clone()
 	
-	-- Find the main sword part to weld
-	local swordPart = holsteredSword:FindFirstChild("Sword")
+	-- Find the main sword part to weld (using the SwordPartName from config)
+	local swordPart = holsteredSword:FindFirstChild(config.SwordPartName)
 	if not swordPart then
-		warn("Could not find 'Sword' part in holstered model!")
+		warn("Could not find '" .. config.SwordPartName .. "' part in holstered model: " .. config.HolsteredModelName)
 		holsteredSword:Destroy()
 		return
 	end
