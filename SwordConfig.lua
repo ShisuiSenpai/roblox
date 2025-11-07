@@ -53,8 +53,8 @@ SwordConfig.Swords = {
 		
 		Holster = {
 			AttachmentPart = "Torso",
-			PositionOffset = Vector3.new(-1, -1.2, 0.7), -- Left hip instead
-			RotationOffset = Vector3.new(0, -90, 110),
+			PositionOffset = Vector3.new(1, -1.2, 0.7), -- SAME as NormalSword
+			RotationOffset = Vector3.new(0, 90, 110), -- SAME as NormalSword
 			TransparencyValue = 0,
 		},
 		
