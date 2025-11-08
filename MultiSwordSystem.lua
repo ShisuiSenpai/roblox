@@ -31,6 +31,18 @@ local SwordConfig = require(ReplicatedStorage:WaitForChild("SwordConfig"))
 -- Disable the hotbar/inventory UI
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
+-- Get or create RemoteEvents folder for crate system integration
+local crateRemotes = ReplicatedStorage:FindFirstChild("CrateRemotes")
+if not crateRemotes then
+	-- Wait a moment for server to create it
+	crateRemotes = ReplicatedStorage:WaitForChild("CrateRemotes", 5)
+end
+
+local switchSwordEvent = nil
+if crateRemotes then
+	switchSwordEvent = crateRemotes:WaitForChild("SwitchSword", 5)
+end
+
 -- ========================================
 -- VARIABLES
 -- ========================================
@@ -322,6 +334,18 @@ player.CharacterAdded:Connect(function(newCharacter)
 		end
 	end)
 end)
+
+-- ========================================
+-- CRATE SYSTEM INTEGRATION
+-- ========================================
+
+-- Listen for sword switch from crate system
+if switchSwordEvent then
+	switchSwordEvent.OnClientEvent:Connect(function(swordName)
+		print("Crate system switching to: " .. swordName)
+		switchSword(swordName)
+	end)
+end
 
 -- ========================================
 -- INITIALIZATION

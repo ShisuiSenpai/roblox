@@ -16,7 +16,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Wait for RemoteEvents
 local crateRemotes = ReplicatedStorage:WaitForChild("CrateRemotes")
 local openCrateEvent = crateRemotes:WaitForChild("OpenCrate")
-local claimSwordEvent = crateRemotes:WaitForChild("ClaimSword")
+local switchSwordEvent = crateRemotes:WaitForChild("SwitchSword")
 
 -- ========================================
 -- UI SETTINGS
@@ -53,7 +53,7 @@ local currentGui = nil
 -- UTILITY FUNCTIONS
 -- ========================================
 
--- Function to disable player movement
+-- Function to disable player movement and UI
 local function setPlayerMovement(enabled)
 	local character = player.Character
 	if not character then return end
@@ -68,6 +68,10 @@ local function setPlayerMovement(enabled)
 			humanoid.JumpPower = 0
 		end
 	end
+	
+	-- Toggle Roblox UI (topbar)
+	local StarterGui = game:GetService("StarterGui")
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, enabled)
 end
 
 -- Function to format sword name for display
@@ -180,7 +184,7 @@ end
 
 -- Function to animate the crate opening
 local function animateCrateOpening(scrollFrame, chosenSword, allSwords)
-	-- Create extended list of swords (repeat multiple times + land on chosen)
+	-- Create extended list of swords (repeat multiple times)
 	local swordList = {}
 	
 	-- Repeat the sword list multiple times
@@ -190,11 +194,17 @@ local function animateCrateOpening(scrollFrame, chosenSword, allSwords)
 		end
 	end
 	
-	-- Add a few more items and then the chosen sword
-	for i = 1, 5 do
+	-- Add more random items, placing the chosen sword in a random position near the end
+	for i = 1, 7 do
 		table.insert(swordList, allSwords[math.random(1, #allSwords)])
 	end
-	table.insert(swordList, chosenSword)
+	
+	-- Insert chosen sword at a random position in the last few items
+	local insertPosition = #swordList - math.random(0, 3)
+	table.insert(swordList, insertPosition, chosenSword)
+	
+	-- Find where the chosen sword ended up
+	local chosenIndex = insertPosition
 	
 	-- Create UI elements for all swords
 	local items = {}
@@ -204,10 +214,9 @@ local function animateCrateOpening(scrollFrame, chosenSword, allSwords)
 		table.insert(items, item)
 	end
 	
-	-- Calculate the target position (center the chosen sword)
-	local totalItems = #swordList
+	-- Calculate the target position (center the chosen sword at its position)
 	local itemWidth = UI_SETTINGS.ItemWidth + UI_SETTINGS.ItemSpacing
-	local targetPosition = -(totalItems - 1) * itemWidth + 400 - (UI_SETTINGS.ItemWidth / 2)
+	local targetPosition = -(chosenIndex - 1) * itemWidth + 400 - (UI_SETTINGS.ItemWidth / 2)
 	
 	-- Animate the scroll with easing
 	local tweenInfo = TweenInfo.new(
@@ -270,8 +279,8 @@ local function openCrate(chosenSword, allSwords)
 	-- Re-enable player movement
 	setPlayerMovement(true)
 	
-	-- Claim the sword from server
-	claimSwordEvent:FireServer(wonSword)
+	-- Fire event to switch sword (will be caught by MultiSwordSystem)
+	switchSwordEvent:FireServer(wonSword)
 	
 	isOpening = false
 end

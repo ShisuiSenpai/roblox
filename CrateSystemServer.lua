@@ -27,11 +27,11 @@ if not openCrateEvent then
 	openCrateEvent.Parent = crateRemotes
 end
 
-local claimSwordEvent = crateRemotes:FindFirstChild("ClaimSword")
-if not claimSwordEvent then
-	claimSwordEvent = Instance.new("RemoteEvent")
-	claimSwordEvent.Name = "ClaimSword"
-	claimSwordEvent.Parent = crateRemotes
+local switchSwordEvent = crateRemotes:FindFirstChild("SwitchSword")
+if not switchSwordEvent then
+	switchSwordEvent = Instance.new("RemoteEvent")
+	switchSwordEvent.Name = "SwitchSword"
+	switchSwordEvent.Parent = crateRemotes
 end
 
 -- Load sword config
@@ -53,33 +53,17 @@ local function chooseRandomSword()
 	return availableSwords[randomIndex]
 end
 
--- Function to give sword to player
-local function giveSwordToPlayer(player, swordName)
-	local character = player.Character
-	if not character then return false end
-	
-	local humanoid = character:FindFirstChild("Humanoid")
-	if not humanoid then return false end
-	
-	-- Find the sword tool in ReplicatedStorage
+-- Function to switch player's sword (integrates with MultiSwordSystem)
+local function switchPlayerSword(player, swordName)
+	-- Verify the sword exists
 	local swordConfig = SwordConfig.Swords[swordName]
 	if not swordConfig then
 		warn("Sword config not found: " .. swordName)
 		return false
 	end
 	
-	local swordTool = ReplicatedStorage:FindFirstChild(swordConfig.ToolName)
-	if not swordTool then
-		warn("Sword tool not found: " .. swordConfig.ToolName)
-		return false
-	end
-	
-	-- Clone the sword and give it to player
-	local newSword = swordTool:Clone()
-	newSword.Parent = character
-	
-	-- Equip it immediately
-	humanoid:EquipTool(newSword)
+	-- Tell the client's MultiSwordSystem to switch to this sword
+	switchSwordEvent:FireClient(player, swordName)
 	
 	return true
 end
@@ -99,22 +83,18 @@ proximityPrompt.Triggered:Connect(function(player)
 	print(player.Name .. " is opening a crate! Chosen sword: " .. chosenSword)
 end)
 
--- When client finishes animation and wants the sword
-claimSwordEvent.OnServerEvent:Connect(function(player, swordName)
+-- Listen for when client wants to switch to the sword they won
+switchSwordEvent.OnServerEvent:Connect(function(player, swordName)
 	-- Verify the sword name is valid
 	if not SwordConfig.Swords[swordName] then
-		warn("Invalid sword claim attempt: " .. tostring(swordName))
+		warn("Invalid sword switch attempt: " .. tostring(swordName))
 		return
 	end
 	
-	-- Give the sword to the player
-	local success = giveSwordToPlayer(player, swordName)
+	-- Tell the client's MultiSwordSystem to switch to this sword
+	switchSwordEvent:FireClient(player, swordName)
 	
-	if success then
-		print("Gave " .. swordName .. " to " .. player.Name)
-	else
-		warn("Failed to give sword to " .. player.Name)
-	end
+	print("Switched " .. player.Name .. " to " .. swordName)
 end)
 
 print("Crate System Server loaded!")
