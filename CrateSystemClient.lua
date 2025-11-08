@@ -215,11 +215,14 @@ local function createSwordItem(swordName, index)
 	local itemFrame = Instance.new("Frame")
 	itemFrame.Name = "Item_" .. index
 	itemFrame.Size = UDim2.new(0, UI_SETTINGS.ItemWidth, 1, -20)
-	itemFrame.Position = UDim2.new(0, index * (UI_SETTINGS.ItemWidth + UI_SETTINGS.ItemSpacing), 0, 10)
+	itemFrame.Position = UDim2.new(0, index * (UI_SETTINGS.ItemWidth + UI_SETTINGS.ItemSpacing), 0.5, 0)
 	itemFrame.BackgroundColor3 = UI_SETTINGS.ItemBackgroundColor
 	itemFrame.BackgroundTransparency = UI_SETTINGS.ItemBackgroundTransparency
 	itemFrame.BorderSizePixel = 0
-	itemFrame.AnchorPoint = Vector2.new(0, 0.5) -- Anchor at center-left for scaling
+	itemFrame.AnchorPoint = Vector2.new(0, 0.5) -- Anchor at center-left for perfect center scaling
+	
+	-- Store original index for positioning
+	itemFrame:SetAttribute("OriginalIndex", index)
 	
 	-- Corner radius
 	local corner = Instance.new("UICorner")
@@ -339,7 +342,10 @@ local function animateCrateOpening(scrollFrame, chosenSword, allSwords)
 		Position = UDim2.new(0, targetPosition, 0, 0)
 	})
 	
-	-- Start highlight effect loop
+	-- Store active tweens for each item
+	local activeTweens = {}
+	
+	-- Start highlight effect loop with smooth transitions
 	local isAnimating = true
 	task.spawn(function()
 		while isAnimating do
@@ -357,43 +363,89 @@ local function animateCrateOpening(scrollFrame, chosenSword, allSwords)
 					local maxDistance = UI_SETTINGS.ItemWidth * 1.5
 					local normalizedDistance = math.clamp(distance / maxDistance, 0, 1)
 					
-					-- Interpolate scale (1.0 to HighlightScale)
-					local targetScale = 1 + (UI_SETTINGS.HighlightScale - 1) * (1 - normalizedDistance)
+					-- Create depth effect: items slightly shrink when neighbors are highlighted
+					-- Use a smooth curve for natural falloff
+					local depthFactor = 1 - ((1 - normalizedDistance) ^ 2) * 0.03 -- Very subtle shrink for neighbors
+					
+					-- Interpolate scale with depth effect
+					local baseScale = 1 + (UI_SETTINGS.HighlightScale - 1) * (1 - normalizedDistance)
+					local targetScale = baseScale * depthFactor
 					
 					-- Interpolate brightness (DefaultBrightness to CenteredBrightness)
 					local targetBrightness = UI_SETTINGS.DefaultBrightness + 
 						(UI_SETTINGS.CenteredBrightness - UI_SETTINGS.DefaultBrightness) * (1 - normalizedDistance)
 					
-					-- Apply scale smoothly
-					item.Size = UDim2.new(0, UI_SETTINGS.ItemWidth * targetScale, 1, -20)
-					item.Position = UDim2.new(
-						0, 
-						item.Name:match("_(%d+)") and tonumber(item.Name:match("_(%d+)")) * (UI_SETTINGS.ItemWidth + UI_SETTINGS.ItemSpacing) or 0,
-						0.5, 
-						0
+					-- Get original index for position calculation
+					local originalIndex = item:GetAttribute("OriginalIndex") or 0
+					local basePositionX = originalIndex * (UI_SETTINGS.ItemWidth + UI_SETTINGS.ItemSpacing)
+					
+					-- Cancel previous tween for this item if it exists
+					if activeTweens[item] then
+						for _, tween in pairs(activeTweens[item]) do
+							tween:Cancel()
+						end
+					end
+					activeTweens[item] = {}
+					
+					-- Create smooth tween for size (flows like water)
+					local sizeTween = TweenService:Create(
+						item,
+						TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+						{
+							Size = UDim2.new(0, UI_SETTINGS.ItemWidth * targetScale, 1, -20),
+							Position = UDim2.new(0, basePositionX, 0.5, 0)
+						}
+					)
+					sizeTween:Play()
+					table.insert(activeTweens[item], sizeTween)
+					
+					-- Create smooth tween for background color
+					local targetColor = Color3.new(
+						UI_SETTINGS.ItemBackgroundColor.R * targetBrightness,
+						UI_SETTINGS.ItemBackgroundColor.G * targetBrightness,
+						UI_SETTINGS.ItemBackgroundColor.B * targetBrightness
 					)
 					
-					-- Apply brightness to background
-					local brightnessMultiplier = targetBrightness
-					item.BackgroundColor3 = Color3.new(
-						UI_SETTINGS.ItemBackgroundColor.R * brightnessMultiplier,
-						UI_SETTINGS.ItemBackgroundColor.G * brightnessMultiplier,
-						UI_SETTINGS.ItemBackgroundColor.B * brightnessMultiplier
+					local colorTween = TweenService:Create(
+						item,
+						TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+						{
+							BackgroundColor3 = targetColor
+						}
 					)
+					colorTween:Play()
+					table.insert(activeTweens[item], colorTween)
 					
-					-- Apply brightness to viewport lighting
+					-- Apply brightness to viewport lighting smoothly
 					local viewport = item:FindFirstChild("Viewport")
 					if viewport then
-						viewport.Ambient = Color3.new(
-							200 / 255 * brightnessMultiplier,
-							200 / 255 * brightnessMultiplier,
-							200 / 255 * brightnessMultiplier
+						local targetAmbient = Color3.new(
+							200 / 255 * targetBrightness,
+							200 / 255 * targetBrightness,
+							200 / 255 * targetBrightness
 						)
+						
+						local lightTween = TweenService:Create(
+							viewport,
+							TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+							{
+								Ambient = targetAmbient
+							}
+						)
+						lightTween:Play()
+						table.insert(activeTweens[item], lightTween)
 					end
 				end
 			end
 			
-			task.wait(0.03) -- Update ~30 times per second
+			task.wait(0.05) -- Update ~20 times per second (smooth without being CPU intensive)
+		end
+		
+		-- Cleanup tweens
+		for _, tweenList in pairs(activeTweens) do
+			for _, tween in pairs(tweenList) do
+				tween:Cancel()
+			end
 		end
 	end)
 	
