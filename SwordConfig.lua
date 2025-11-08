@@ -59,14 +59,62 @@ SwordConfig.Swords = {
 		},
 		
 		Attack = {
-			AttackDuration = 0.3,
+			AttackDuration = 0.5,
 			AttackCooldown = 0.4,
-			AnimationId = "rbxassetid://0",
+			AnimationId = "rbxassetid://102835293832677",
 			Damage = 12,
 			AttackRange = 10,
 		},
 		
 		Keybind = Enum.KeyCode.Two, -- Press "2" to equip
+	},
+	
+	-- SWORD 3: Purple Sword
+	["PurpleSword"] = {
+		HolsteredModelName = "HolsteredSwordPurple",
+		SwordPartName = "PurpleSword",
+		ToolName = "PurpleSword",
+		
+		Holster = {
+			AttachmentPart = "Torso",
+			PositionOffset = Vector3.new(1, -1.2, 0.7),
+			RotationOffset = Vector3.new(0, 90, 110),
+			TransparencyValue = 0,
+		},
+		
+		Attack = {
+			AttackDuration = 0.5,
+			AttackCooldown = 0.4,
+			AnimationId = "rbxassetid://102835293832677",
+			Damage = 10,
+			AttackRange = 10,
+		},
+		
+		Keybind = Enum.KeyCode.Three, -- Press "3" to equip
+	},
+	
+	-- SWORD 4: Steel Sword
+	["SteelSword"] = {
+		HolsteredModelName = "HolsteredSwordSteel",
+		SwordPartName = "SteelSword",
+		ToolName = "SteelSword",
+		
+		Holster = {
+			AttachmentPart = "Torso",
+			PositionOffset = Vector3.new(1, -1.2, 0.7),
+			RotationOffset = Vector3.new(0, 90, 110),
+			TransparencyValue = 0,
+		},
+		
+		Attack = {
+			AttackDuration = 0.5,
+			AttackCooldown = 0.4,
+			AnimationId = "rbxassetid://102835293832677",
+			Damage = 10,
+			AttackRange = 10,
+		},
+		
+		Keybind = Enum.KeyCode.Four, -- Press "4" to equip
 	},
 	
 	--[[
