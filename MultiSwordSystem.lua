@@ -31,6 +31,16 @@ local SwordConfig = require(ReplicatedStorage:WaitForChild("SwordConfig"))
 -- Disable the hotbar/inventory UI
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
+-- Keep checking to make sure hotbar stays disabled (some actions try to re-enable it)
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		pcall(function()
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+		end)
+	end
+end)
+
 -- Get or create RemoteEvents folder for crate system integration
 local crateRemotes = ReplicatedStorage:FindFirstChild("CrateRemotes")
 if not crateRemotes then
@@ -247,6 +257,10 @@ local function performAttack()
 	
 	-- Equip the sword (simulates equipping to hand)
 	humanoid:EquipTool(attackSword)
+	
+	-- Ensure hotbar doesn't appear when equipping
+	task.wait()
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 	
 	-- Load and play attack animation if provided
 	if attackConfig.AnimationId ~= "rbxassetid://0" then

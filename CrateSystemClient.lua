@@ -69,9 +69,15 @@ local function setPlayerMovement(enabled)
 		end
 	end
 	
-	-- Toggle Roblox UI (topbar)
+	-- Toggle Roblox UI (topbar) but ALWAYS keep backpack disabled
 	local StarterGui = game:GetService("StarterGui")
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, enabled)
+	if enabled then
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+		-- But keep the backpack (hotbar) disabled always
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+	else
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+	end
 end
 
 -- Function to format sword name for display
@@ -104,6 +110,9 @@ local function createCrateUI(chosenSword, allSwords)
 	overlay.BackgroundTransparency = UI_SETTINGS.BackgroundTransparency
 	overlay.BorderSizePixel = 0
 	overlay.Parent = screenGui
+	
+	-- Make sure it covers the topbar area
+	screenGui.IgnoreGuiInset = true
 	
 	-- Container for the spinning items
 	local container = Instance.new("Frame")
@@ -184,24 +193,29 @@ end
 
 -- Function to animate the crate opening
 local function animateCrateOpening(scrollFrame, chosenSword, allSwords)
-	-- Create extended list of swords (repeat multiple times)
+	-- Create extended list of swords (repeat many times to ensure seamless looping)
 	local swordList = {}
 	
-	-- Repeat the sword list multiple times
-	for i = 1, UI_SETTINGS.SpinRepeats do
+	-- Repeat the sword list MANY times to create continuous loop effect
+	for i = 1, UI_SETTINGS.SpinRepeats * 2 do
 		for _, swordName in ipairs(allSwords) do
 			table.insert(swordList, swordName)
 		end
 	end
 	
-	-- Add more random items, placing the chosen sword in a random position near the end
-	for i = 1, 7 do
+	-- Add many more random items to hide any "end"
+	for i = 1, 20 do
 		table.insert(swordList, allSwords[math.random(1, #allSwords)])
 	end
 	
-	-- Insert chosen sword at a random position in the last few items
-	local insertPosition = #swordList - math.random(0, 3)
+	-- Insert chosen sword somewhere in the middle/end (not at the very end)
+	local insertPosition = #swordList - math.random(5, 12)
 	table.insert(swordList, insertPosition, chosenSword)
+	
+	-- Add even MORE items after to hide the end completely
+	for i = 1, 15 do
+		table.insert(swordList, allSwords[math.random(1, #allSwords)])
+	end
 	
 	-- Find where the chosen sword ended up
 	local chosenIndex = insertPosition
@@ -292,6 +306,17 @@ end
 -- Listen for crate opening event from server
 openCrateEvent.OnClientEvent:Connect(function(chosenSword, allSwords)
 	openCrate(chosenSword, allSwords)
+end)
+
+-- Extra safety: Keep hotbar permanently disabled
+task.spawn(function()
+	while true do
+		task.wait(1)
+		pcall(function()
+			local StarterGui = game:GetService("StarterGui")
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+		end)
+	end
 end)
 
 print("Crate System Client loaded!")
