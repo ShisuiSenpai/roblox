@@ -38,10 +38,10 @@ local UI_SETTINGS = {
 	TextColor = Color3.fromRGB(220, 220, 230),
 	AccentColor = Color3.fromRGB(100, 100, 255),
 	
-	-- Animation
+	-- Animation settings
 	ItemWidth = 220, -- Slightly wider for 3D models
 	ItemSpacing = 20,
-	SpinDuration = 4, -- How long the spin takes (seconds)
+	SpinDuration = 5, -- How long the spin takes in seconds (higher = slower)
 	SpinRepeats = 3, -- How many times to loop through all items
 	
 	-- ViewportFrame settings
@@ -49,10 +49,12 @@ local UI_SETTINGS = {
 	CameraDistance = 1, -- How far the camera is from the model (lower = closer)
 	ModelRotation = 20, -- Rotation angle for the model (degrees)
 	
-	-- Highlight effect settings
-	HighlightScale = 1.08, -- How much to zoom the centered item (1.08 = 8% bigger)
-	HighlightBrightness = 1.15, -- How much brighter the centered item gets
-	DimmedBrightness = 0.75, -- How much darker non-centered items are
+	-- Highlight effect settings (CS:GO style)
+	HighlightScale = 1.08, -- Zoom when centered (1.0 = no zoom, 1.1 = 10% bigger, 1.2 = 20% bigger)
+	
+	-- Brightness settings (1.0 = normal brightness)
+	CenteredBrightness = 1.0, -- How bright items are when under the indicator (1.0 = normal)
+	DefaultBrightness = 0.7, -- How bright items are by default (0.7 = slightly dimmed)
 }
 
 -- ========================================
@@ -358,9 +360,9 @@ local function animateCrateOpening(scrollFrame, chosenSword, allSwords)
 					-- Interpolate scale (1.0 to HighlightScale)
 					local targetScale = 1 + (UI_SETTINGS.HighlightScale - 1) * (1 - normalizedDistance)
 					
-					-- Interpolate brightness
-					local targetBrightness = UI_SETTINGS.DimmedBrightness + 
-						(UI_SETTINGS.HighlightBrightness - UI_SETTINGS.DimmedBrightness) * (1 - normalizedDistance)
+					-- Interpolate brightness (DefaultBrightness to CenteredBrightness)
+					local targetBrightness = UI_SETTINGS.DefaultBrightness + 
+						(UI_SETTINGS.CenteredBrightness - UI_SETTINGS.DefaultBrightness) * (1 - normalizedDistance)
 					
 					-- Apply scale smoothly
 					item.Size = UDim2.new(0, UI_SETTINGS.ItemWidth * targetScale, 1, -20)
