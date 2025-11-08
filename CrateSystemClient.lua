@@ -46,7 +46,7 @@ local UI_SETTINGS = {
 	
 	-- ViewportFrame settings
 	ViewportSize = 180, -- Size of the 3D model display
-	CameraDistance = 8, -- How far the camera is from the model
+	CameraDistance = 1.5, -- How far the camera is from the model (lower = closer)
 	ModelRotation = 25, -- Rotation angle for the model (degrees)
 }
 
