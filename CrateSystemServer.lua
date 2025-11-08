@@ -8,9 +8,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
--- Get the chest and prompt
-local chest = workspace:WaitForChild("Chest")
-local proximityPrompt = chest:WaitForChild("ProximityPrompt")
+-- Get the crate part and prompt
+local crateTemple = workspace:WaitForChild("CrateTemple")
+local openCratePart = crateTemple:WaitForChild("OpenCratePart")
+local proximityPrompt = openCratePart:WaitForChild("OpenSwordBox")
 
 -- Get or create RemoteEvents
 local crateRemotes = ReplicatedStorage:FindFirstChild("CrateRemotes")
@@ -34,8 +35,9 @@ if not switchSwordEvent then
 	switchSwordEvent.Parent = crateRemotes
 end
 
--- Load sword config
-local SwordConfig = require(ReplicatedStorage:WaitForChild("SwordConfig"))
+-- Load sword config from Modules folder
+local modulesFolder = ReplicatedStorage:WaitForChild("Modules")
+local SwordConfig = require(modulesFolder:WaitForChild("SwordConfig"))
 
 -- Table of all available swords
 local availableSwords = {}

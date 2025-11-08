@@ -18,8 +18,11 @@ local crateRemotes = ReplicatedStorage:WaitForChild("CrateRemotes")
 local openCrateEvent = crateRemotes:WaitForChild("OpenCrate")
 local switchSwordEvent = crateRemotes:WaitForChild("SwitchSword")
 
--- Load VF models folder
+-- Load VF models folder and organized folders
 local vfModelsFolder = ReplicatedStorage:WaitForChild("VFmodels")
+local modulesFolder = ReplicatedStorage:WaitForChild("Modules")
+local toolSwordsFolder = ReplicatedStorage:WaitForChild("ToolSwords")
+local holsteredModelsFolder = ReplicatedStorage:WaitForChild("HolsteredModels")
 
 -- ========================================
 -- UI SETTINGS

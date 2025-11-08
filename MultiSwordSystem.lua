@@ -25,8 +25,13 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local mouse = player:GetMouse()
 
--- Load sword configuration
-local SwordConfig = require(ReplicatedStorage:WaitForChild("SwordConfig"))
+-- Load sword configuration from Modules folder
+local modulesFolder = ReplicatedStorage:WaitForChild("Modules")
+local SwordConfig = require(modulesFolder:WaitForChild("SwordConfig"))
+
+-- Get folders for organized assets
+local toolSwordsFolder = ReplicatedStorage:WaitForChild("ToolSwords")
+local holsteredModelsFolder = ReplicatedStorage:WaitForChild("HolsteredModels")
 
 -- Disable the hotbar/inventory UI
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
@@ -101,10 +106,10 @@ local function createHolsteredSword(swordName, config)
 	-- Check if already exists
 	if holsteredSwords[swordName] then return end
 	
-	-- Find the template in ReplicatedStorage
-	local holsteredTemplate = ReplicatedStorage:FindFirstChild(config.HolsteredModelName)
+	-- Find the template in HolsteredModels folder
+	local holsteredTemplate = holsteredModelsFolder:FindFirstChild(config.HolsteredModelName)
 	if not holsteredTemplate then
-		warn("Could not find holstered model: " .. config.HolsteredModelName)
+		warn("Could not find holstered model: " .. config.HolsteredModelName .. " in HolsteredModels folder")
 		return
 	end
 	
@@ -241,10 +246,10 @@ local function performAttack()
 	-- Hide holstered version of current sword
 	hideHolster(currentSwordName)
 	
-	-- Find the tool in ReplicatedStorage
-	local toolTemplate = ReplicatedStorage:FindFirstChild(currentSwordConfig.ToolName)
+	-- Find the tool in ToolSwords folder
+	local toolTemplate = toolSwordsFolder:FindFirstChild(currentSwordConfig.ToolName)
 	if not toolTemplate then
-		warn("Could not find tool: " .. currentSwordConfig.ToolName)
+		warn("Could not find tool: " .. currentSwordConfig.ToolName .. " in ToolSwords folder")
 		showHolster(currentSwordName)
 		isAttacking = false
 		canAttack = true
