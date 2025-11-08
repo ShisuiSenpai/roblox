@@ -171,8 +171,20 @@ local function setupViewportCamera(viewport, model)
 	camera.Parent = viewport
 	viewport.CurrentCamera = camera
 	
-	-- Calculate model size and center
-	local modelCFrame, modelSize = model:GetBoundingBox()
+	-- Get model CFrame and size (handle both Models and single parts like MeshParts)
+	local modelCFrame, modelSize
+	
+	if model:IsA("Model") then
+		-- It's a Model - use GetBoundingBox
+		modelCFrame, modelSize = model:GetBoundingBox()
+	elseif model:IsA("BasePart") then
+		-- It's a single part (MeshPart, Part, etc.) - use CFrame and Size directly
+		modelCFrame = model.CFrame
+		modelSize = model.Size
+	else
+		warn("Unknown model type: " .. model.ClassName)
+		return
+	end
 	
 	-- Position camera to view the model
 	local maxDimension = math.max(modelSize.X, modelSize.Y, modelSize.Z)
@@ -184,7 +196,11 @@ local function setupViewportCamera(viewport, model)
 	camera.CFrame = CFrame.new(camera.CFrame.Position, modelCFrame.Position)
 	
 	-- Add some rotation to the model for visual interest
-	model:PivotTo(modelCFrame * CFrame.Angles(0, math.rad(45), 0))
+	if model:IsA("Model") then
+		model:PivotTo(modelCFrame * CFrame.Angles(0, math.rad(45), 0))
+	elseif model:IsA("BasePart") then
+		model.CFrame = modelCFrame * CFrame.Angles(0, math.rad(45), 0)
+	end
 end
 
 -- Function to create sword item UI element with ViewportFrame
