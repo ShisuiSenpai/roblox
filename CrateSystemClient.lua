@@ -46,8 +46,13 @@ local UI_SETTINGS = {
 	
 	-- ViewportFrame settings
 	ViewportSize = 180, -- Size of the 3D model display
-	CameraDistance = 1.5, -- How far the camera is from the model (lower = closer)
-	ModelRotation = 25, -- Rotation angle for the model (degrees)
+	CameraDistance = 1, -- How far the camera is from the model (lower = closer)
+	ModelRotation = 20, -- Rotation angle for the model (degrees)
+	
+	-- Highlight effect settings
+	HighlightScale = 1.08, -- How much to zoom the centered item (1.08 = 8% bigger)
+	HighlightBrightness = 1.15, -- How much brighter the centered item gets
+	DimmedBrightness = 0.75, -- How much darker non-centered items are
 }
 
 -- ========================================
@@ -131,11 +136,11 @@ local function createCrateUI(chosenSword, allSwords)
 	container.ClipsDescendants = true
 	container.Parent = overlay
 	
-	-- Selector line (vertical line in center)
+	-- Selector line (vertical line in center - same height as items)
 	local selector = Instance.new("Frame")
 	selector.Name = "Selector"
-	selector.Size = UDim2.new(0, 3, 1, 0)
-	selector.Position = UDim2.new(0.5, -1.5, 0, 0)
+	selector.Size = UDim2.new(0, 3, 1, -20) -- Same height as items (container height - 20)
+	selector.Position = UDim2.new(0.5, -1.5, 0, 10) -- Same offset as items
 	selector.BackgroundColor3 = UI_SETTINGS.AccentColor
 	selector.BorderSizePixel = 0
 	selector.ZIndex = 10
@@ -212,6 +217,7 @@ local function createSwordItem(swordName, index)
 	itemFrame.BackgroundColor3 = UI_SETTINGS.ItemBackgroundColor
 	itemFrame.BackgroundTransparency = UI_SETTINGS.ItemBackgroundTransparency
 	itemFrame.BorderSizePixel = 0
+	itemFrame.AnchorPoint = Vector2.new(0, 0.5) -- Anchor at center-left for scaling
 	
 	-- Corner radius
 	local corner = Instance.new("UICorner")
@@ -331,10 +337,71 @@ local function animateCrateOpening(scrollFrame, chosenSword, allSwords)
 		Position = UDim2.new(0, targetPosition, 0, 0)
 	})
 	
+	-- Start highlight effect loop
+	local isAnimating = true
+	task.spawn(function()
+		while isAnimating do
+			-- Update highlight effect for all items based on their distance from center
+			local containerCenter = 400 -- Center X position of the container
+			
+			for _, item in pairs(items) do
+				if item and item.Parent then
+					-- Calculate distance from center
+					local itemCenterX = item.AbsolutePosition.X + (item.AbsoluteSize.X / 2)
+					local screenCenterX = item.Parent.Parent.AbsolutePosition.X + containerCenter
+					local distance = math.abs(itemCenterX - screenCenterX)
+					
+					-- Calculate scale and brightness based on distance (closer = bigger/brighter)
+					local maxDistance = UI_SETTINGS.ItemWidth * 1.5
+					local normalizedDistance = math.clamp(distance / maxDistance, 0, 1)
+					
+					-- Interpolate scale (1.0 to HighlightScale)
+					local targetScale = 1 + (UI_SETTINGS.HighlightScale - 1) * (1 - normalizedDistance)
+					
+					-- Interpolate brightness
+					local targetBrightness = UI_SETTINGS.DimmedBrightness + 
+						(UI_SETTINGS.HighlightBrightness - UI_SETTINGS.DimmedBrightness) * (1 - normalizedDistance)
+					
+					-- Apply scale smoothly
+					item.Size = UDim2.new(0, UI_SETTINGS.ItemWidth * targetScale, 1, -20)
+					item.Position = UDim2.new(
+						0, 
+						item.Name:match("_(%d+)") and tonumber(item.Name:match("_(%d+)")) * (UI_SETTINGS.ItemWidth + UI_SETTINGS.ItemSpacing) or 0,
+						0.5, 
+						0
+					)
+					
+					-- Apply brightness to background
+					local brightnessMultiplier = targetBrightness
+					item.BackgroundColor3 = Color3.new(
+						UI_SETTINGS.ItemBackgroundColor.R * brightnessMultiplier,
+						UI_SETTINGS.ItemBackgroundColor.G * brightnessMultiplier,
+						UI_SETTINGS.ItemBackgroundColor.B * brightnessMultiplier
+					)
+					
+					-- Apply brightness to viewport lighting
+					local viewport = item:FindFirstChild("Viewport")
+					if viewport then
+						viewport.Ambient = Color3.new(
+							200 / 255 * brightnessMultiplier,
+							200 / 255 * brightnessMultiplier,
+							200 / 255 * brightnessMultiplier
+						)
+					end
+				end
+			end
+			
+			task.wait(0.03) -- Update ~30 times per second
+		end
+	end)
+	
 	tween:Play()
 	
 	-- Wait for animation to complete
 	tween.Completed:Wait()
+	
+	-- Stop highlight effect
+	isAnimating = false
 	
 	-- Wait a bit more to show result
 	task.wait(1)
