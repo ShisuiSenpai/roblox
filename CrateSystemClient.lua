@@ -18,6 +18,9 @@ local crateRemotes = ReplicatedStorage:WaitForChild("CrateRemotes")
 local openCrateEvent = crateRemotes:WaitForChild("OpenCrate")
 local switchSwordEvent = crateRemotes:WaitForChild("SwitchSword")
 
+-- Load VF models folder
+local vfModelsFolder = ReplicatedStorage:WaitForChild("VFmodels")
+
 -- ========================================
 -- UI SETTINGS
 -- ========================================
@@ -36,10 +39,15 @@ local UI_SETTINGS = {
 	AccentColor = Color3.fromRGB(100, 100, 255),
 	
 	-- Animation
-	ItemWidth = 200,
+	ItemWidth = 220, -- Slightly wider for 3D models
 	ItemSpacing = 20,
 	SpinDuration = 4, -- How long the spin takes (seconds)
 	SpinRepeats = 3, -- How many times to loop through all items
+	
+	-- ViewportFrame settings
+	ViewportSize = 180, -- Size of the 3D model display
+	CameraDistance = 8, -- How far the camera is from the model
+	ModelRotation = 25, -- Rotation angle for the model (degrees)
 }
 
 -- ========================================
@@ -117,8 +125,8 @@ local function createCrateUI(chosenSword, allSwords)
 	-- Container for the spinning items
 	local container = Instance.new("Frame")
 	container.Name = "Container"
-	container.Size = UDim2.new(0, 800, 0, 150)
-	container.Position = UDim2.new(0.5, -400, 0.5, -75)
+	container.Size = UDim2.new(0, 800, 0, 250) -- Taller to fit 3D models
+	container.Position = UDim2.new(0.5, -400, 0.5, -125)
 	container.BackgroundTransparency = 1
 	container.ClipsDescendants = true
 	container.Parent = overlay
@@ -145,7 +153,7 @@ local function createCrateUI(chosenSword, allSwords)
 	local titleLabel = Instance.new("TextLabel")
 	titleLabel.Name = "Title"
 	titleLabel.Size = UDim2.new(0, 400, 0, 50)
-	titleLabel.Position = UDim2.new(0.5, -200, 0.5, -200)
+	titleLabel.Position = UDim2.new(0.5, -200, 0.5, -250)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Text = "OPENING CRATE"
 	titleLabel.TextColor3 = UI_SETTINGS.TextColor
@@ -156,7 +164,30 @@ local function createCrateUI(chosenSword, allSwords)
 	return screenGui, scrollFrame, titleLabel
 end
 
--- Function to create sword item UI element
+-- Function to setup ViewportFrame camera
+local function setupViewportCamera(viewport, model)
+	-- Create camera
+	local camera = Instance.new("Camera")
+	camera.Parent = viewport
+	viewport.CurrentCamera = camera
+	
+	-- Calculate model size and center
+	local modelCFrame, modelSize = model:GetBoundingBox()
+	
+	-- Position camera to view the model
+	local maxDimension = math.max(modelSize.X, modelSize.Y, modelSize.Z)
+	local distance = maxDimension * UI_SETTINGS.CameraDistance
+	
+	-- Angle the camera for a nice view
+	local cameraAngle = CFrame.Angles(math.rad(-15), math.rad(UI_SETTINGS.ModelRotation), 0)
+	camera.CFrame = CFrame.new(modelCFrame.Position) * cameraAngle * CFrame.new(0, 0, distance)
+	camera.CFrame = CFrame.new(camera.CFrame.Position, modelCFrame.Position)
+	
+	-- Add some rotation to the model for visual interest
+	model:PivotTo(modelCFrame * CFrame.Angles(0, math.rad(45), 0))
+end
+
+-- Function to create sword item UI element with ViewportFrame
 local function createSwordItem(swordName, index)
 	local itemFrame = Instance.new("Frame")
 	itemFrame.Name = "Item_" .. index
@@ -171,17 +202,54 @@ local function createSwordItem(swordName, index)
 	corner.CornerRadius = UDim.new(0, 8)
 	corner.Parent = itemFrame
 	
-	-- Sword name text
+	-- ViewportFrame for 3D model
+	local viewport = Instance.new("ViewportFrame")
+	viewport.Name = "Viewport"
+	viewport.Size = UDim2.new(0, UI_SETTINGS.ViewportSize, 0, UI_SETTINGS.ViewportSize)
+	viewport.Position = UDim2.new(0.5, -UI_SETTINGS.ViewportSize/2, 0, 10)
+	viewport.BackgroundTransparency = 1
+	viewport.BorderSizePixel = 0
+	viewport.Ambient = Color3.fromRGB(200, 200, 200)
+	viewport.LightColor = Color3.fromRGB(255, 255, 255)
+	viewport.Parent = itemFrame
+	
+	-- Try to load the 3D model
+	local modelName = swordName .. "VF"
+	local modelTemplate = vfModelsFolder:FindFirstChild(modelName)
+	
+	if modelTemplate then
+		-- Clone the model into the viewport
+		local model = modelTemplate:Clone()
+		model.Parent = viewport
+		
+		-- Setup camera to view the model
+		setupViewportCamera(viewport, model)
+	else
+		-- Fallback: Show warning text if model not found
+		local warningLabel = Instance.new("TextLabel")
+		warningLabel.Size = UDim2.new(1, 0, 1, 0)
+		warningLabel.BackgroundTransparency = 1
+		warningLabel.Text = "Model\nNot Found"
+		warningLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+		warningLabel.TextSize = 16
+		warningLabel.Font = Enum.Font.GothamBold
+		warningLabel.TextWrapped = true
+		warningLabel.Parent = viewport
+		warn("VF Model not found: " .. modelName)
+	end
+	
+	-- Sword name text (below the viewport)
 	local nameLabel = Instance.new("TextLabel")
 	nameLabel.Name = "NameLabel"
-	nameLabel.Size = UDim2.new(1, -20, 1, -20)
-	nameLabel.Position = UDim2.new(0, 10, 0, 10)
+	nameLabel.Size = UDim2.new(1, -20, 0, 30)
+	nameLabel.Position = UDim2.new(0, 10, 1, -40)
 	nameLabel.BackgroundTransparency = 1
 	nameLabel.Text = formatSwordName(swordName)
 	nameLabel.TextColor3 = UI_SETTINGS.TextColor
-	nameLabel.TextSize = 24
+	nameLabel.TextSize = 18
 	nameLabel.Font = Enum.Font.GothamBold
 	nameLabel.TextWrapped = true
+	nameLabel.TextYAlignment = Enum.TextYAlignment.Bottom
 	nameLabel.Parent = itemFrame
 	
 	return itemFrame
