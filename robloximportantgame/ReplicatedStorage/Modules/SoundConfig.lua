@@ -2,7 +2,7 @@
 	SOUND CONFIGURATION MODULE
 	Place this ModuleScript in ReplicatedStorage/Modules
 	
-	Centralizes all sound IDs for easy management
+	Centralizes ALL sound IDs for easy management
 	Replace the placeholder IDs with your actual Roblox sound asset IDs
 ]]
 
@@ -71,7 +71,65 @@ SoundConfig.ExplosionSounds = {
 }
 
 -- ========================================
--- HELPER FUNCTION
+-- GAME SOUNDS (Round System, King of Hill, etc.)
+-- ========================================
+
+SoundConfig.GameSounds = {
+	-- Countdown sounds
+	countdown_tick = {
+		SoundId = "rbxassetid://122531515344257", -- Tick sound for 3, 2, 1
+		Volume = 0.5,
+		Pitch = 1.0,
+	},
+
+	countdown_go = {
+		SoundId = "rbxassetid://140419294351439", -- GO! sound
+		Volume = 0.7,
+		Pitch = 1.0,
+	},
+
+	-- King of the Hill sounds
+	become_king = {
+		SoundId = "rbxassetid://2222222", -- When you become king
+		Volume = 0.6,
+		Pitch = 1.0,
+	},
+
+	king_tick = {
+		SoundId = "rbxassetid://2222222", -- Subtle tick while king timer counts
+		Volume = 0.15,
+		Pitch = 1.0,
+	},
+
+	player_wins = {
+		SoundId = "rbxassetid://7464917496", -- Victory sound
+		Volume = 0.8,
+		Pitch = 1.0,
+	},
+
+	-- Intermission sounds
+	intermission = {
+		SoundId = "rbxassetid://122531515344257", -- Quiet sound during intermission
+		Volume = 0.1,
+		Pitch = 1.0,
+	},
+
+	-- Combat sounds (push tool)
+	push_swing = {
+		SoundId = "rbxassetid://74238153433253", -- Swing/whoosh sound when pushing
+		Volume = 0.4,
+		Pitch = 1.0,
+	},
+
+	push_hit = {
+		SoundId = "rbxassetid://146163534", -- Impact sound when hitting player
+		Volume = 0.5,
+		Pitch = 1.0,
+	},
+}
+
+-- ========================================
+-- HELPER FUNCTIONS
 -- ========================================
 
 -- Function to create a Sound instance from config
@@ -88,6 +146,21 @@ function SoundConfig.CreateSound(soundConfig, parent)
 	sound.Parent = parent
 
 	return sound
+end
+
+-- Get a specific game sound config by name
+function SoundConfig.GetGameSound(soundName)
+	return SoundConfig.GameSounds[soundName]
+end
+
+-- Get a specific crate sound config by name
+function SoundConfig.GetCrateSound(soundName)
+	return SoundConfig.CrateSounds[soundName]
+end
+
+-- Get a specific explosion sound config by rarity
+function SoundConfig.GetExplosionSound(rarity)
+	return SoundConfig.ExplosionSounds[rarity]
 end
 
 return SoundConfig
