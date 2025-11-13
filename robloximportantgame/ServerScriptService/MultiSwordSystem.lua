@@ -580,18 +580,6 @@ attackRemote.OnServerEvent:Connect(function(attacker)
 				-- Get push force from sword config
 				local pushForce = config.Attack.PushForce or 50
 
-				-- Check for 2x push boost gamepass
-				local pushMultiplier = 1
-				if _G.GamepassManager then
-					pushMultiplier = _G.GamepassManager.getPushMultiplier(attacker)
-				end
-
-				pushForce = pushForce * pushMultiplier
-
-				if pushMultiplier > 1 then
-					print("[SWORD] Push boost applied! Force: " .. pushForce)
-				end
-
 				-- Apply push and ragdoll
 				applyPushForce(targetCharacter, pushDirection, pushForce)
 				local removeRagdoll = createRagdoll(targetCharacter)

@@ -172,20 +172,9 @@ local function addWin(player)
 	local leaderstats = playerLeaderstats[userId]
 
 	if stats and leaderstats then
-		-- Check for 2x wins gamepass
-		local winMultiplier = 1
-		if _G.GamepassManager then
-			winMultiplier = _G.GamepassManager.getWinMultiplier(player)
-		end
-
-		stats.Wins = stats.Wins + winMultiplier
+		stats.Wins = stats.Wins + 1
 		leaderstats.WinsValue.Value = stats.Wins
-
-		if winMultiplier > 1 then
-			print("[STATS]", player.Name, "got", winMultiplier, "wins! (2x Gamepass) Total wins:", stats.Wins)
-		else
-			print("[STATS]", player.Name, "got a win! Total wins:", stats.Wins)
-		end
+		print("[STATS]", player.Name, "got a win! Total wins:", stats.Wins)
 
 		-- Mark for saving
 		saveQueue[userId] = true

@@ -233,19 +233,9 @@ local function unfreezePlayer(player)
 		local baseWalkSpeed = 16
 		local baseJumpPower = 50
 
-		-- Check for speed boost gamepass
-		local speedMultiplier = 1
-		if _G.GamepassManager then
-			speedMultiplier = _G.GamepassManager.getSpeedMultiplier(player)
-		end
-
-		humanoid.WalkSpeed = baseWalkSpeed * speedMultiplier
+		humanoid.WalkSpeed = baseWalkSpeed
 		humanoid.JumpPower = baseJumpPower
 		humanoid.JumpHeight = 7.2
-
-		if speedMultiplier > 1 then
-			print("[ROUND]", player.Name, "unfrozen with speed boost:", speedMultiplier, "x")
-		end
 	end
 end
 
