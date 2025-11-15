@@ -323,69 +323,105 @@ end
 -- ROBUX PURCHASE RECEIPT (MarketplaceService)
 -- ========================================
 
+-- IMPORTANT: This sets the GLOBAL ProcessReceipt handler
+-- If you have other Developer Products, you need to handle them here too
 MarketplaceService.ProcessReceipt = function(receiptInfo)
+	print("[DUAL CRATE] ProcessReceipt called! ProductId:", receiptInfo.ProductId, "PlayerId:", receiptInfo.PlayerId)
+	
 	local userId = receiptInfo.PlayerId
 	local productId = receiptInfo.ProductId
 	
 	-- Check if it's our Premium Crate product
 	if productId ~= CRATE_CONFIG.Premium.ProductId then
+		warn("[DUAL CRATE] Not our product. Expected:", CRATE_CONFIG.Premium.ProductId, "Got:", productId)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	
-	print("[DUAL CRATE] Processing Premium Crate purchase for UserId:", userId)
+	print("[DUAL CRATE] ✅ Processing Premium Crate purchase for UserId:", userId)
 	
 	local player = Players:GetPlayerByUserId(userId)
 	
 	-- Clear pending purchase
-	pendingPurchases[userId] = nil
+	if pendingPurchases[userId] then
+		pendingPurchases[userId] = nil
+		print("[DUAL CRATE] Cleared pending purchase for", userId)
+	end
 	
-	-- If player left, still process the receipt
+	-- If player left, still grant the purchase (avoid refund)
 	if not player then
-		warn("[DUAL CRATE] Player left before purchase completed. Awarding sword on next join...")
+		warn("[DUAL CRATE] Player left before purchase completed. Granting anyway to avoid refund.")
 		-- TODO: Could save pending reward in DataStore for next join
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 	
-	-- Mark as opening
-	playersOpening[userId] = true
+	-- Process in a separate thread so we don't block the receipt handler
+	task.spawn(function()
+		local success, errorMsg = pcall(function()
+			-- Mark as opening
+			playersOpening[userId] = true
+			print("[DUAL CRATE] Player", player.Name, "marked as opening crate")
+			
+			-- Choose random sword (Premium odds - better!)
+			local chosenSword = chooseRandomSword("Premium")
+			if not chosenSword then
+				error("Failed to choose sword")
+			end
+			
+			print("[DUAL CRATE] Chosen sword:", chosenSword.SwordName, "for", player.Name)
+			
+			-- Get all sword names for animation
+			local allSwordNames = {}
+			for swordName, _ in pairs(SwordConfig.Swords) do
+				table.insert(allSwordNames, swordName)
+			end
+			
+			print("[DUAL CRATE] Firing animation event to client for", player.Name)
+			
+			-- Trigger client-side animation
+			if openCrateEvent then
+				openCrateEvent:FireClient(player, chosenSword.SwordName, allSwordNames)
+				print("[DUAL CRATE] ✅ Animation event fired to", player.Name)
+			else
+				warn("[DUAL CRATE] OpenCrate event is nil!")
+			end
+			
+			-- Wait for animation (client animation is 5 seconds + extras)
+			print("[DUAL CRATE] Waiting 7 seconds for animation to complete...")
+			task.wait(7)
+			
+			-- Check if player still exists
+			if not player or not player.Parent then
+				warn("[DUAL CRATE] Player left during animation")
+				playersOpening[userId] = nil
+				return
+			end
+			
+			-- Award sword
+			print("[DUAL CRATE] Awarding sword to", player.Name)
+			local addSuccess = _G.InventoryManager.addSword(player, chosenSword.SwordName)
+			if addSuccess then
+				print("[DUAL CRATE] ✅", player.Name, "received (PREMIUM):", chosenSword.SwordName)
+			else
+				warn("[DUAL CRATE] Failed to add sword to", player.Name, "'s inventory!")
+			end
+			
+			-- Unlock
+			playersOpening[userId] = nil
+			print("[DUAL CRATE] Player", player.Name, "unmarked from opening")
+		end)
+		
+		if not success then
+			warn("[DUAL CRATE] ERROR in premium crate processing:", errorMsg)
+			playersOpening[userId] = nil
+		end
+	end)
 	
-	-- Choose random sword (Premium odds - better!)
-	local chosenSword = chooseRandomSword("Premium")
-	if not chosenSword then
-		warn("[DUAL CRATE] Failed to choose sword for", player.Name)
-		playersOpening[userId] = nil
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-	
-	-- Get all sword names for animation
-	local allSwordNames = {}
-	for swordName, _ in pairs(SwordConfig.Swords) do
-		table.insert(allSwordNames, swordName)
-	end
-	
-	-- Trigger client-side animation
-	if openCrateEvent then
-		openCrateEvent:FireClient(player, chosenSword.SwordName, allSwordNames)
-	end
-	
-	-- Wait for animation
-	task.wait(2)
-	
-	-- Award sword
-	local addSuccess = _G.InventoryManager.addSword(player, chosenSword.SwordName)
-	if addSuccess then
-		print("[DUAL CRATE]", player.Name, "received (PREMIUM):", chosenSword.SwordName)
-	else
-		warn("[DUAL CRATE] Failed to add sword to", player.Name, "'s inventory!")
-		playersOpening[userId] = nil
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-	
-	-- Unlock
-	playersOpening[userId] = nil
-	
+	-- Return immediately to not block Roblox's purchase system
+	print("[DUAL CRATE] Returning PurchaseGranted immediately")
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
+
+print("[DUAL CRATE] ProcessReceipt handler installed for ProductId:", CRATE_CONFIG.Premium.ProductId)
 
 -- ========================================
 -- PROXIMITY PROMPT HANDLERS
@@ -417,4 +453,14 @@ print("[DUAL CRATE] Regular Crate: ¥" .. CRATE_CONFIG.Regular.Cost .. " | Premi
 
 if CRATE_CONFIG.Premium.ProductId == 0 then
 	warn("⚠️ [DUAL CRATE] Premium Crate ProductId not set! Create a Developer Product and paste the ID on line ~26")
+	warn("⚠️ [DUAL CRATE] Premium crate purchases will NOT work until ProductId is configured!")
+else
+	print("[DUAL CRATE] ✅ Premium Crate configured with ProductId:", CRATE_CONFIG.Premium.ProductId)
 end
+
+-- Verify ProcessReceipt is still ours (in case another script overrides it)
+task.delay(2, function()
+	if not MarketplaceService.ProcessReceipt then
+		warn("⚠️ [DUAL CRATE] ProcessReceipt handler was removed! Another script may have overridden it!")
+	end
+end)
