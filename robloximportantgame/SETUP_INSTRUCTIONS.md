@@ -24,7 +24,9 @@ You now have a **clean dual crate system**:
 
 ---
 
-## ⚙️ STEP 2: Configure the Script
+## ⚙️ STEP 2: Configure the Scripts
+
+### A. Set Premium Crate Product ID
 
 1. Open `ServerScriptService` → `DualCrateSystem.lua`
 2. Find line ~24 (Premium config)
@@ -39,7 +41,33 @@ Premium = {
 }
 ```
 
-**⚠️ IMPORTANT:** The prompt text is now in the UI, not the ProximityPrompt!
+### B. Set Crate Image IDs
+
+1. Open `StarterPlayer` → `StarterPlayerScripts` → `CrateChoiceUI.lua`
+2. Find lines ~32-33 (UI_CONFIG)
+3. Replace the image asset IDs with your actual uploaded images:
+
+```lua
+local UI_CONFIG = {
+    -- ... other settings ...
+    
+    -- Image Assets (USER WILL REPLACE THESE)
+    RegularCrateImage = "rbxassetid://1234567890", -- ← PASTE YOUR REGULAR CRATE IMAGE ID
+    PremiumCrateImage = "rbxassetid://9876543210", -- ← PASTE YOUR PREMIUM CRATE IMAGE ID
+}
+```
+
+**How to get Image IDs:**
+1. Go to Roblox Creator Dashboard → Development Items → Decals
+2. Upload your crate images (PNG/JPG recommended)
+3. Click on the uploaded decal
+4. Copy the **Asset ID** from the URL
+5. Paste into the config above
+
+**⚠️ IMPORTANT:** 
+- If you don't set images, placeholder text will show instead
+- Images should be square (512x512 or 1024x1024 recommended)
+- Make sure images are approved by Roblox moderation
 
 ---
 
@@ -106,18 +134,26 @@ local UI_CONFIG = {
     BackgroundColor = Color3.fromRGB(15, 15, 20),
     RegularCardColor = Color3.fromRGB(30, 30, 40),
     PremiumCardColor = Color3.fromRGB(45, 35, 60),
-    -- ... more colors ...
+    
+    TextColor = Color3.fromRGB(255, 255, 255),
+    PriceColor = Color3.fromRGB(120, 220, 120), -- Green for Yen
+    RobuxColor = Color3.fromRGB(255, 215, 0), -- Gold for Robux
+    
+    AccentColor = Color3.fromRGB(100, 150, 255), -- Regular button/border
+    PremiumAccent = Color3.fromRGB(255, 215, 0), -- Premium button/border
 }
 ```
 
 ### Change Prices/Text:
-- **Regular price text:** Line ~251 (`regularPrice.Text = "¥ 250"`)
-- **Premium price text:** Line ~338 (`premiumPrice.Text = "99 R$"`)
-- **Descriptions:** Lines ~245 and ~332 (regularDesc, premiumDesc)
+- **Regular price:** Line ~192 (`regularPrice.Text = "¥ 250"`)
+- **Premium price:** Line ~297 (`premiumPrice.Text = "99 R$"`)
+- **Regular description:** Line ~183 (regularDesc)
+- **Premium description:** Line ~288 (premiumDesc)
+- **Title:** Line ~114 (`title.Text = "Choose Relic Type"`)
 
-### Change Emojis:
-- **Regular icon:** Line ~236 (`regularIconText.Text = "📦"`)
-- **Premium icon:** Line ~323 (`premiumIconText.Text = "✨"`)
+### Change Button Text:
+- **Regular button:** Line ~208 (`regularButton.Text = "OPEN"`)
+- **Premium button:** Line ~313 (`premiumButton.Text = "OPEN"`)
 
 ---
 
@@ -211,10 +247,12 @@ particles.Parent = cratePart
 1. ✅ Create Developer Product on Roblox website
 2. ✅ Copy Product ID
 3. ✅ Paste Product ID in `DualCrateSystem.lua` (line ~24)
-4. ✅ Delete old `CrateSystem.lua` (if it exists)
-5. ✅ Test by walking up to crate and choosing an option
-6. ✅ (Optional) Customize UI colors/text in `CrateChoiceUI.lua`
-7. ✅ (Optional) Make crate look fancy with particles/lights
+4. ✅ Upload your crate images to Roblox (Decals)
+5. ✅ Paste Image IDs in `CrateChoiceUI.lua` (lines ~32-33)
+6. ✅ Delete old `CrateSystem.lua` (if it exists)
+7. ✅ Test by walking up to crate and choosing an option
+8. ✅ (Optional) Customize UI colors/text in `CrateChoiceUI.lua`
+9. ✅ (Optional) Make crate look fancy with particles/lights
 
 **That's it!** Your game now has a **clean, professional dual crate system** with a beautiful UI! 🎮✨
 
@@ -236,6 +274,11 @@ particles.Parent = cratePart
 - Make sure `CurrencyManager.lua` is running
 - Check Output for currency-related errors
 - Verify you have 250+ Yen before opening
+
+**Images showing "IMAGE HERE" text:**
+- This means you haven't set the image IDs yet in `CrateChoiceUI.lua`
+- Follow Step 2B above to upload images and set IDs
+- If you have set IDs but still see placeholders, check that the Asset IDs are correct
 
 **Need Help?**
 Check the Output window for detailed error messages. All scripts print helpful debug info!

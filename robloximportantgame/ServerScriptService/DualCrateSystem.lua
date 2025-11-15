@@ -101,6 +101,14 @@ if not requestCrateOpenEvent then
 	requestCrateOpenEvent.Parent = crateRemotes
 end
 
+-- Create CrateError event (Server -> Client: show error message)
+local crateErrorEvent = crateRemotes:FindFirstChild("CrateError")
+if not crateErrorEvent then
+	crateErrorEvent = Instance.new("RemoteEvent")
+	crateErrorEvent.Name = "CrateError"
+	crateErrorEvent.Parent = crateRemotes
+end
+
 -- Keep existing OpenCrate event for animation/reward
 local openCrateEvent = ReplicatedStorage:WaitForChild("OpenCrate", 10)
 if not openCrateEvent then
@@ -207,7 +215,12 @@ local function openRegularCrate(player)
 	local playerCurrency = _G.CurrencyManager.getCurrency(player)
 	if not playerCurrency or playerCurrency < CRATE_CONFIG.Regular.Cost then
 		warn("[DUAL CRATE]", player.Name, "doesn't have enough Yen! Has:", playerCurrency, "Need:", CRATE_CONFIG.Regular.Cost)
-		-- TODO: Could fire a client event to show "Not enough Yen!" message
+		
+		-- Show error to player
+		if crateErrorEvent then
+			local deficit = CRATE_CONFIG.Regular.Cost - (playerCurrency or 0)
+			crateErrorEvent:FireClient(player, "Not enough Yen! Need ¥" .. deficit .. " more")
+		end
 		return
 	end
 	
@@ -266,7 +279,11 @@ local function openPremiumCrate(player)
 	-- Check if ProductId is configured
 	if CRATE_CONFIG.Premium.ProductId == 0 then
 		warn("[DUAL CRATE] Premium Crate ProductId not configured! Please set it in DualCrateSystem.lua")
-		-- TODO: Could show error message to player
+		
+		-- Show error to player
+		if crateErrorEvent then
+			crateErrorEvent:FireClient(player, "Premium Crate not configured yet!")
+		end
 		return
 	end
 	
