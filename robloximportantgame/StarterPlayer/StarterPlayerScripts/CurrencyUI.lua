@@ -21,7 +21,7 @@ local CURRENCY_SETTINGS = {
 	BorderColor = Color3.fromRGB(252, 252, 252),
 	
 	-- Position
-	LeftOffset = 10,
+	LeftOffset = 25,
 	TopOffset = 0.35, -- 35% from top (middle-left area)
 	
 	-- Sizes
@@ -90,8 +90,8 @@ stroke.Parent = currencyFrame
 -- Currency text (just the text with ¥ symbol, left-aligned)
 local currencyText = Instance.new("TextLabel")
 currencyText.Name = "CurrencyText"
-currencyText.Size = UDim2.new(1, -20, 1, 0) -- Padding of 10px on each side
-currencyText.Position = UDim2.new(0, 10, 0, 0)
+currencyText.Size = UDim2.new(1, -30, 1, 0) -- Padding of 15px on each side
+currencyText.Position = UDim2.new(0, 15, 0, 0)
 currencyText.BackgroundTransparency = 1
 currencyText.Font = Enum.Font.GothamBold
 currencyText.Text = formatCurrency(currentCurrency)
