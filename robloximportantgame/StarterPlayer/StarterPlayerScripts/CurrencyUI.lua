@@ -35,20 +35,20 @@ local CURRENCY_SETTINGS = {
 -- ==================== CURRENCY DATA ====================
 
 -- This will be replaced with actual currency from server
-local currentCurrency = 6700 -- Test value (will show as "¥ 6.7K")
+local currentCurrency = 6700 -- Test value (will show as "¥  6.7K")
 
 -- ==================== HELPER FUNCTIONS ====================
 
--- Format large numbers (e.g., 6700 -> "6.7K", 1500000 -> "1.5M")
+-- Format large numbers (e.g., 6700 -> "¥  6.7K", 1500000 -> "¥  1.5M")
 local function formatCurrency(amount)
 	if amount >= 1000000000 then
-		return string.format("¥ %.1fB", amount / 1000000000)
+		return string.format("¥  %.1fB", amount / 1000000000)
 	elseif amount >= 1000000 then
-		return string.format("¥ %.1fM", amount / 1000000)
+		return string.format("¥  %.1fM", amount / 1000000)
 	elseif amount >= 1000 then
-		return string.format("¥ %.1fK", amount / 1000)
+		return string.format("¥  %.1fK", amount / 1000)
 	else
-		return "¥ " .. tostring(math.floor(amount))
+		return "¥  " .. tostring(math.floor(amount))
 	end
 end
 
@@ -87,7 +87,7 @@ stroke.Transparency = 0.6
 stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 stroke.Parent = currencyFrame
 
--- Currency text (just the text with ¥ symbol)
+-- Currency text (just the text with ¥ symbol, left-aligned)
 local currencyText = Instance.new("TextLabel")
 currencyText.Name = "CurrencyText"
 currencyText.Size = UDim2.new(1, -20, 1, 0) -- Padding of 10px on each side
@@ -97,7 +97,7 @@ currencyText.Font = Enum.Font.GothamBold
 currencyText.Text = formatCurrency(currentCurrency)
 currencyText.TextColor3 = CURRENCY_SETTINGS.TextColor
 currencyText.TextSize = 20
-currencyText.TextXAlignment = Enum.TextXAlignment.Center
+currencyText.TextXAlignment = Enum.TextXAlignment.Left
 currencyText.TextYAlignment = Enum.TextYAlignment.Center
 currencyText.TextTruncate = Enum.TextTruncate.AtEnd
 currencyText.Parent = currencyFrame
