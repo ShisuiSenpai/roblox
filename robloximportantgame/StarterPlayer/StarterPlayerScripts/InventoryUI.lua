@@ -768,7 +768,7 @@ local function createInventoryButton()
 	local button = Instance.new("TextButton")
 	button.Name = "InventoryButton"
 	button.Size = UDim2.new(0, 80, 0, 80) -- Square
-	button.Position = UDim2.new(0, 10, 0.5, 0) -- Left middle
+	button.Position = UDim2.new(0, 10, 0.5, 50) -- Left middle, shifted down to make room for currency display
 	button.AnchorPoint = Vector2.new(0, 0.5) -- Center vertically
 	button.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 	button.BackgroundTransparency = 0.1
