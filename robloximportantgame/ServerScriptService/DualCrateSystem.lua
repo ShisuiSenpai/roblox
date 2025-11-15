@@ -17,6 +17,7 @@ local CRATE_CONFIG = {
 	Regular = {
 		Cost = 250,
 		CostType = "Currency", -- Uses Yen
+		ProximityText = "Regular Relic | ¥250",
 		RarityMultipliers = {
 			["Common"] = 1.0,
 			["Uncommon"] = 1.0,
@@ -28,8 +29,9 @@ local CRATE_CONFIG = {
 	},
 	Premium = {
 		Cost = 99, -- Robux price
-		ProductId = 0, -- ⚠️ USER MUST SET THIS! See SETUP_INSTRUCTIONS.md
+		ProductId = 0, -- ⚠️ USER MUST SET THIS! Create a Developer Product
 		CostType = "Robux", -- Uses Robux via Developer Product
+		ProximityText = "Premium Relic | 99 R$",
 		RarityMultipliers = {
 			["Common"] = 0.5,     -- Less common drops
 			["Uncommon"] = 0.7,   -- Slightly less uncommon
@@ -42,72 +44,73 @@ local CRATE_CONFIG = {
 }
 
 -- ========================================
--- WORKSPACE SETUP (Single Proximity Prompt)
+-- WORKSPACE SETUP
 -- ========================================
 
-local crateTemple = workspace:WaitForChild("CrateTemple", 10)
-if not crateTemple then
-	error("[DUAL CRATE] CrateTemple not found in Workspace!")
+local lobby = workspace:WaitForChild("Lobby", 10)
+if not lobby then
+	error("[DUAL CRATE] Lobby not found in Workspace!")
 end
 
-local cratePart = crateTemple:WaitForChild("OpenCratePart", 10)
-if not cratePart then
-	error("[DUAL CRATE] OpenCratePart not found in CrateTemple!")
+-- Find Normal Crate
+local normalCrate = lobby:WaitForChild("NormalCrate", 10)
+if not normalCrate then
+	error("[DUAL CRATE] NormalCrate not found in Lobby!")
 end
 
--- Get or create proximity prompt
-local cratePrompt = cratePart:FindFirstChildOfClass("ProximityPrompt")
-if not cratePrompt then
-	cratePrompt = Instance.new("ProximityPrompt")
-	cratePrompt.Name = "OpenCratePrompt"
-	cratePrompt.Parent = cratePart
+local normalPart = normalCrate:WaitForChild("NormalPart", 10)
+if not normalPart then
+	error("[DUAL CRATE] NormalPart not found in NormalCrate!")
 end
 
--- Configure prompt
-cratePrompt.ActionText = "Open Relic"
-cratePrompt.ObjectText = "Sword Relic"
-cratePrompt.HoldDuration = 0
-cratePrompt.MaxActivationDistance = 10
-cratePrompt.RequiresLineOfSight = false
-cratePrompt.ClickablePrompt = true
+local normalPrompt = normalPart:WaitForChild("OpenNormalCrate", 10)
+if not normalPrompt or not normalPrompt:IsA("ProximityPrompt") then
+	error("[DUAL CRATE] OpenNormalCrate ProximityPrompt not found in NormalPart!")
+end
 
-print("[DUAL CRATE] Single proximity prompt configured")
+-- Find Premium Crate
+local premiumCrate = lobby:WaitForChild("PremiumCrate", 10)
+if not premiumCrate then
+	error("[DUAL CRATE] PremiumCrate not found in Lobby!")
+end
+
+local premiumPart = premiumCrate:WaitForChild("PremiumPart", 10)
+if not premiumPart then
+	error("[DUAL CRATE] PremiumPart not found in PremiumCrate!")
+end
+
+local premiumPrompt = premiumPart:WaitForChild("OpenPremiumCrate", 10)
+if not premiumPrompt or not premiumPrompt:IsA("ProximityPrompt") then
+	error("[DUAL CRATE] OpenPremiumCrate ProximityPrompt not found in PremiumPart!")
+end
+
+print("[DUAL CRATE] Found both crates in Lobby")
+
+-- ========================================
+-- CONFIGURE PROXIMITY PROMPTS
+-- ========================================
+
+-- Normal Crate Prompt
+normalPrompt.ActionText = "Open"
+normalPrompt.ObjectText = CRATE_CONFIG.Regular.ProximityText
+normalPrompt.HoldDuration = 0
+normalPrompt.MaxActivationDistance = 10
+normalPrompt.RequiresLineOfSight = false
+normalPrompt.ClickablePrompt = true
+
+-- Premium Crate Prompt
+premiumPrompt.ActionText = "Open"
+premiumPrompt.ObjectText = CRATE_CONFIG.Premium.ProximityText
+premiumPrompt.HoldDuration = 0
+premiumPrompt.MaxActivationDistance = 10
+premiumPrompt.RequiresLineOfSight = false
+premiumPrompt.ClickablePrompt = true
+
+print("[DUAL CRATE] Proximity prompts configured")
 
 -- ========================================
 -- REMOTE EVENTS SETUP
 -- ========================================
-
--- Create RemoteEvent folder if it doesn't exist
-local crateRemotes = ReplicatedStorage:FindFirstChild("CrateRemotes")
-if not crateRemotes then
-	crateRemotes = Instance.new("Folder")
-	crateRemotes.Name = "CrateRemotes"
-	crateRemotes.Parent = ReplicatedStorage
-end
-
--- Create ShowCrateChoice event (Server -> Client: show UI)
-local showCrateChoiceEvent = crateRemotes:FindFirstChild("ShowCrateChoice")
-if not showCrateChoiceEvent then
-	showCrateChoiceEvent = Instance.new("RemoteEvent")
-	showCrateChoiceEvent.Name = "ShowCrateChoice"
-	showCrateChoiceEvent.Parent = crateRemotes
-end
-
--- Create RequestCrateOpen event (Client -> Server: player chose a crate)
-local requestCrateOpenEvent = crateRemotes:FindFirstChild("RequestCrateOpen")
-if not requestCrateOpenEvent then
-	requestCrateOpenEvent = Instance.new("RemoteEvent")
-	requestCrateOpenEvent.Name = "RequestCrateOpen"
-	requestCrateOpenEvent.Parent = crateRemotes
-end
-
--- Create CrateError event (Server -> Client: show error message)
-local crateErrorEvent = crateRemotes:FindFirstChild("CrateError")
-if not crateErrorEvent then
-	crateErrorEvent = Instance.new("RemoteEvent")
-	crateErrorEvent.Name = "CrateError"
-	crateErrorEvent.Parent = crateRemotes
-end
 
 -- Keep existing OpenCrate event for animation/reward
 local openCrateEvent = ReplicatedStorage:WaitForChild("OpenCrate", 10)
@@ -215,12 +218,6 @@ local function openRegularCrate(player)
 	local playerCurrency = _G.CurrencyManager.getCurrency(player)
 	if not playerCurrency or playerCurrency < CRATE_CONFIG.Regular.Cost then
 		warn("[DUAL CRATE]", player.Name, "doesn't have enough Yen! Has:", playerCurrency, "Need:", CRATE_CONFIG.Regular.Cost)
-		
-		-- Show error to player
-		if crateErrorEvent then
-			local deficit = CRATE_CONFIG.Regular.Cost - (playerCurrency or 0)
-			crateErrorEvent:FireClient(player, "Not enough Yen! Need ¥" .. deficit .. " more")
-		end
 		return
 	end
 	
@@ -279,11 +276,6 @@ local function openPremiumCrate(player)
 	-- Check if ProductId is configured
 	if CRATE_CONFIG.Premium.ProductId == 0 then
 		warn("[DUAL CRATE] Premium Crate ProductId not configured! Please set it in DualCrateSystem.lua")
-		
-		-- Show error to player
-		if crateErrorEvent then
-			crateErrorEvent:FireClient(player, "Premium Crate not configured yet!")
-		end
 		return
 	end
 	
@@ -365,39 +357,19 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 end
 
 -- ========================================
--- PROXIMITY PROMPT: SHOW CHOICE UI
+-- PROXIMITY PROMPT HANDLERS
 -- ========================================
 
-cratePrompt.Triggered:Connect(function(player)
+-- Normal Crate
+normalPrompt.Triggered:Connect(function(player)
 	if not player or not player.Parent then return end
-	
-	-- Check if player is already opening a crate
-	if playersOpening[player.UserId] or pendingPurchases[player.UserId] then
-		warn("[DUAL CRATE]", player.Name, "is already opening a crate!")
-		return
-	end
-	
-	-- Show choice UI to the player
-	print("[DUAL CRATE]", player.Name, "triggered crate - showing choice UI")
-	showCrateChoiceEvent:FireClient(player)
+	openRegularCrate(player)
 end)
 
--- ========================================
--- HANDLE PLAYER CHOICE FROM UI
--- ========================================
-
-requestCrateOpenEvent.OnServerEvent:Connect(function(player, crateType)
+-- Premium Crate
+premiumPrompt.Triggered:Connect(function(player)
 	if not player or not player.Parent then return end
-	
-	print("[DUAL CRATE]", player.Name, "chose:", crateType)
-	
-	if crateType == "Regular" then
-		openRegularCrate(player)
-	elseif crateType == "Premium" then
-		openPremiumCrate(player)
-	else
-		warn("[DUAL CRATE] Invalid crate type from", player.Name, ":", crateType)
-	end
+	openPremiumCrate(player)
 end)
 
 -- ========================================
@@ -410,9 +382,8 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 print("[DUAL CRATE] System ready! ✅")
-print("[DUAL CRATE] Regular Crate: ¥" .. CRATE_CONFIG.Regular.Cost)
-print("[DUAL CRATE] Premium Crate: " .. CRATE_CONFIG.Premium.Cost .. " R$ (ProductId:", CRATE_CONFIG.Premium.ProductId, ")")
+print("[DUAL CRATE] Regular Crate: ¥" .. CRATE_CONFIG.Regular.Cost .. " | Premium Crate: " .. CRATE_CONFIG.Premium.Cost .. " R$")
 
 if CRATE_CONFIG.Premium.ProductId == 0 then
-	warn("⚠️ [DUAL CRATE] Premium Crate ProductId not set! See SETUP_INSTRUCTIONS.md")
+	warn("⚠️ [DUAL CRATE] Premium Crate ProductId not set! Create a Developer Product and paste the ID on line ~26")
 end
