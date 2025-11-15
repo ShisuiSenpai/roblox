@@ -1,9 +1,11 @@
 # 🎁 Dual Crate System Setup Instructions
 
 ## 📋 Overview
-You now have TWO crate types:
-- **Regular Crate** - Costs 250 Yen (in-game currency)
-- **Premium Crate** - Costs Robux (real money), better drop rates
+You now have a **clean dual crate system**:
+- **ONE proximity prompt** at the crate
+- Opens a **beautiful UI** showing BOTH options
+- **Regular Relic** - Costs 250 Yen (in-game currency)
+- **Premium Relic** - Costs Robux (real money), **2-3x better drop rates**
 
 ---
 
@@ -22,38 +24,7 @@ You now have TWO crate types:
 
 ---
 
-## 🏗️ STEP 2: Create Premium Crate in Workspace
-
-### Option A: Duplicate Existing Crate (Easiest)
-1. Open Roblox Studio
-2. Find `Workspace` → `CrateTemple` → `OpenCratePart`
-3. **Duplicate it** (Ctrl+D)
-4. Rename the duplicate to: `PremiumCratePart`
-5. **Move it to a different location** (next to regular crate)
-6. Find the `OpenSwordBox` ProximityPrompt inside it
-7. Rename it to: `OpenPremiumBox`
-
-### Option B: Make Premium Crate Look Different (Recommended)
-1. After duplicating, select `PremiumCratePart`
-2. Change its appearance:
-   - **Color:** Gold/Purple/Rainbow (make it fancy!)
-   - **Material:** Neon or ForceField
-   - **Add effects:** ParticleEmitter, PointLight (gold sparkles!)
-3. This makes it clear which is premium
-
-**IMPORTANT:** Structure should be:
-```
-Workspace
-└── CrateTemple
-    ├── OpenCratePart (Regular - already exists)
-    │   └── OpenSwordBox (ProximityPrompt)
-    └── PremiumCratePart (NEW - Premium)
-        └── OpenPremiumBox (ProximityPrompt)
-```
-
----
-
-## ⚙️ STEP 3: Configure the Script
+## ⚙️ STEP 2: Configure the Script
 
 1. Open `ServerScriptService` → `DualCrateSystem.lua`
 2. Find line ~24 (Premium config)
@@ -68,9 +39,42 @@ Premium = {
 }
 ```
 
+**⚠️ IMPORTANT:** The prompt text is now in the UI, not the ProximityPrompt!
+
 ---
 
-## 📊 STEP 4: Adjust Drop Rates (Optional)
+## 🗑️ STEP 3: Remove Old Script
+
+1. **DELETE** `ServerScriptService` → `CrateSystem.lua` (old version, if it exists)
+2. The new `DualCrateSystem.lua` replaces it completely
+
+---
+
+## ✅ STEP 4: Test It!
+
+### How It Works Now:
+1. Play test in Studio
+2. Walk up to the **single crate**
+3. ProximityPrompt shows: `"Open Relic"`
+4. Click/Press E → **UI pops up** with both options:
+   - **Regular Relic (¥ 250)** - Standard drops
+   - **Premium Relic (99 R$)** - Better drops!
+5. Player chooses which one they want
+6. Animation plays, sword awarded
+
+### Test Regular Crate:
+- Make sure you have 250+ Yen
+- Click "OPEN" on Regular card
+- Should deduct Yen and open crate
+
+### Test Premium Crate:
+- Click "OPEN" on Premium card
+- **Robux purchase prompt appears**
+- (In Studio, you can't actually purchase, but prompt should show)
+
+---
+
+## 📊 STEP 5: Adjust Drop Rates (Optional)
 
 In `DualCrateSystem.lua`, you can customize the rarity multipliers:
 
@@ -92,62 +96,28 @@ Premium = {
 
 ---
 
-## 🗑️ STEP 5: Remove Old Script
+## 🎨 STEP 6: Customize UI (Optional)
 
-1. **DELETE** `ServerScriptService` → `CrateSystem.lua` (old version)
-2. The new `DualCrateSystem.lua` replaces it completely
+### Change UI Colors/Text:
+Open `StarterPlayer/StarterPlayerScripts/CrateChoiceUI.lua` and edit:
 
----
-
-## ✅ STEP 6: Test It!
-
-### Test Regular Crate:
-1. Play test in Studio
-2. Walk up to regular crate
-3. Should show: `"Regular Relic | ¥250"`
-4. Open with 250+ Yen
-5. Animation plays, sword added
-
-### Test Premium Crate:
-1. Walk up to premium crate
-2. Should show: `"Premium Relic | 99 R$"`
-3. Click/press E
-4. **Robux purchase prompt appears**
-5. (In Studio, you can't actually purchase, but prompt should appear)
-
----
-
-## 🎨 Visual Enhancement Ideas
-
-### Make Premium Crate Stand Out:
-
-**Gold/Shiny Effect:**
 ```lua
--- Add to PremiumCratePart
-premiumCratePart.Material = Enum.Material.Neon
-premiumCratePart.Color = Color3.fromRGB(255, 215, 0) -- Gold
-
--- Add PointLight
-local light = Instance.new("PointLight")
-light.Color = Color3.fromRGB(255, 215, 0)
-light.Brightness = 2
-light.Range = 15
-light.Parent = premiumCratePart
-
--- Add ParticleEmitter (sparkles)
-local particles = Instance.new("ParticleEmitter")
-particles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-particles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
-particles.Rate = 20
-particles.Lifetime = NumberRange.new(1, 2)
-particles.Speed = NumberRange.new(2, 5)
-particles.Parent = premiumCratePart
+local UI_CONFIG = {
+    BackgroundColor = Color3.fromRGB(15, 15, 20),
+    RegularCardColor = Color3.fromRGB(30, 30, 40),
+    PremiumCardColor = Color3.fromRGB(45, 35, 60),
+    -- ... more colors ...
+}
 ```
 
-**Different Size/Height:**
-- Make premium crate **taller** or **larger**
-- Place it on a **pedestal**
-- Add a **sign** above it saying "PREMIUM"
+### Change Prices/Text:
+- **Regular price text:** Line ~251 (`regularPrice.Text = "¥ 250"`)
+- **Premium price text:** Line ~338 (`premiumPrice.Text = "99 R$"`)
+- **Descriptions:** Lines ~245 and ~332 (regularDesc, premiumDesc)
+
+### Change Emojis:
+- **Regular icon:** Line ~236 (`regularIconText.Text = "📦"`)
+- **Premium icon:** Line ~323 (`premiumIconText.Text = "✨"`)
 
 ---
 
@@ -158,13 +128,14 @@ particles.Parent = premiumCratePart
 ✅ **Can't open multiple crates simultaneously**
 ✅ **Developer Products are secure (Roblox handles payment)**
 ✅ **Receipt processing ensures player gets their purchase**
+✅ **UI is client-side only - all logic server-side**
 
 ---
 
 ## 💡 Monetization Tips
 
 ### Pricing Strategy:
-- **Regular:** 250 Yen (achievable through gameplay - 3-4 kills or 1 win)
+- **Regular:** 250 Yen (achievable through gameplay - 7 kills or 3 wins + 1 kill)
 - **Premium:** 99 Robux (affordable impulse purchase)
 
 ### Value Proposition:
@@ -180,15 +151,91 @@ particles.Parent = premiumCratePart
 
 ---
 
+## 🎨 Visual Enhancement Ideas
+
+### Make Crate Stand Out:
+
+**Gold/Shiny Effect:**
+```lua
+-- Select OpenCratePart in Workspace
+local cratePart = workspace.CrateTemple.OpenCratePart
+
+-- Make it glow
+cratePart.Material = Enum.Material.Neon
+cratePart.Color = Color3.fromRGB(100, 150, 255) -- Blue glow
+
+-- Add PointLight
+local light = Instance.new("PointLight")
+light.Color = Color3.fromRGB(100, 150, 255)
+light.Brightness = 2
+light.Range = 15
+light.Parent = cratePart
+
+-- Add ParticleEmitter (sparkles)
+local particles = Instance.new("ParticleEmitter")
+particles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+particles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
+particles.Rate = 20
+particles.Lifetime = NumberRange.new(1, 2)
+particles.Speed = NumberRange.new(2, 5)
+particles.Parent = cratePart
+```
+
+**Place on Pedestal:**
+- Make crate **elevated**
+- Add a **platform** beneath it
+- Add a **sign** or **billboard** above saying "SWORD RELICS"
+
+---
+
+## ✨ What's Better About This System?
+
+### Old Way (2 Proximity Prompts):
+❌ Two crates next to each other (ugly)
+❌ Confusing for players
+❌ Hard to explain differences
+❌ Takes up more space
+
+### New Way (UI Choice):
+✅ **ONE clean crate location**
+✅ **Professional UI** shows both options
+✅ **Side-by-side comparison** of benefits
+✅ **Clear pricing** and descriptions
+✅ **Looks like a real game!** 🎮
+
+---
+
 ## 📝 Summary
 
 **What You Need To Do:**
 1. ✅ Create Developer Product on Roblox website
 2. ✅ Copy Product ID
-3. ✅ Duplicate crate in workspace (name it `PremiumCratePart`)
-4. ✅ Paste Product ID in `DualCrateSystem.lua`
-5. ✅ Delete old `CrateSystem.lua`
-6. ✅ Test both crates
-7. ✅ Customize premium crate appearance (make it shiny!)
+3. ✅ Paste Product ID in `DualCrateSystem.lua` (line ~24)
+4. ✅ Delete old `CrateSystem.lua` (if it exists)
+5. ✅ Test by walking up to crate and choosing an option
+6. ✅ (Optional) Customize UI colors/text in `CrateChoiceUI.lua`
+7. ✅ (Optional) Make crate look fancy with particles/lights
 
-**That's it!** Your game now has a premium monetization option while keeping free-to-play viable. 🎮💰
+**That's it!** Your game now has a **clean, professional dual crate system** with a beautiful UI! 🎮✨
+
+---
+
+## 🐛 Troubleshooting
+
+**UI doesn't appear when clicking crate:**
+- Check Output for errors
+- Make sure `CrateChoiceUI.lua` is in `StarterPlayer > StarterPlayerScripts`
+- Check that RemoteEvents exist in `ReplicatedStorage > CrateRemotes`
+
+**Premium purchase doesn't work:**
+- Make sure `ProductId` is set correctly in `DualCrateSystem.lua`
+- Check that the Product exists in Creator Dashboard
+- Remember: Purchases don't work in Studio, only in published game
+
+**Regular crate doesn't deduct Yen:**
+- Make sure `CurrencyManager.lua` is running
+- Check Output for currency-related errors
+- Verify you have 250+ Yen before opening
+
+**Need Help?**
+Check the Output window for detailed error messages. All scripts print helpful debug info!

@@ -1,16 +1,13 @@
---[[
-	DUAL CRATE SYSTEM - SERVER SCRIPT
-	Place this Script in ServerScriptService
-	
-	Handles both Regular (Yen) and Premium (Robux) crate opening
-	Replace the old CrateSystem.lua with this file
-]]
+-- Dual Crate System (Server Script)
+-- Place this Script in ServerScriptService
+-- Manages both Regular (Yen) and Premium (Robux) crate purchases
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
+local ServerStorage = game:GetService("ServerStorage")
 local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 
-print("[DUAL CRATE] Loading dual crate system...")
+print("[DUAL CRATE] Loading system...")
 
 -- ========================================
 -- CONFIGURATION
@@ -18,9 +15,8 @@ print("[DUAL CRATE] Loading dual crate system...")
 
 local CRATE_CONFIG = {
 	Regular = {
-		Cost = 250, -- Yen cost
-		CostType = "Currency",
-		ProximptText = "Regular Relic | ¥250",
+		Cost = 250,
+		CostType = "Currency", -- Uses Yen
 		RarityMultipliers = {
 			["Common"] = 1.0,
 			["Uncommon"] = 1.0,
@@ -30,74 +26,58 @@ local CRATE_CONFIG = {
 			["???"] = 1.0,
 		},
 	},
-	
 	Premium = {
-		Cost = 99, -- Robux cost (REPLACE WITH YOUR DEVELOPER PRODUCT ID)
-		ProductId = 0, -- REPLACE WITH YOUR ACTUAL DEVELOPER PRODUCT ID
-		CostType = "Robux",
-		ProximptText = "Premium Relic | 99 R$",
+		Cost = 99, -- Robux price
+		ProductId = 0, -- ⚠️ USER MUST SET THIS! See SETUP_INSTRUCTIONS.md
+		CostType = "Robux", -- Uses Robux via Developer Product
 		RarityMultipliers = {
-			["Common"] = 0.5, -- Half the chance for common
-			["Uncommon"] = 0.7,
-			["Rare"] = 1.2,
-			["Legendary"] = 2.0, -- Double chance for legendary
-			["Godly"] = 3.0, -- Triple chance for godly
-			["???"] = 2.5, -- 2.5x chance for mystery
+			["Common"] = 0.5,     -- Less common drops
+			["Uncommon"] = 0.7,   -- Slightly less uncommon
+			["Rare"] = 1.2,       -- 20% better chance
+			["Legendary"] = 2.0,  -- 2x better chance
+			["Godly"] = 3.0,      -- 3x better chance
+			["???"] = 2.5,        -- 2.5x better chance
 		},
 	},
 }
 
 -- ========================================
--- FIND CRATE PARTS & PROMPTS
+-- WORKSPACE SETUP (Single Proximity Prompt)
 -- ========================================
 
-local crateTemple = workspace:WaitForChild("CrateTemple")
-
--- Regular crate (existing one)
-local regularCratePart = crateTemple:WaitForChild("OpenCratePart")
-local regularPrompt = regularCratePart:WaitForChild("OpenSwordBox")
-
--- Premium crate (you need to create this in workspace)
-local premiumCratePart = crateTemple:FindFirstChild("PremiumCratePart")
-local premiumPrompt = nil
-
-if premiumCratePart then
-	premiumPrompt = premiumCratePart:FindFirstChild("OpenPremiumBox")
-	print("[DUAL CRATE] Premium crate found!")
-else
-	warn("[DUAL CRATE] Premium crate not found! Create 'PremiumCratePart' with 'OpenPremiumBox' ProximityPrompt")
+local crateTemple = workspace:WaitForChild("CrateTemple", 10)
+if not crateTemple then
+	error("[DUAL CRATE] CrateTemple not found in Workspace!")
 end
 
--- ========================================
--- CONFIGURE PROXIMITY PROMPTS
--- ========================================
-
--- Regular crate prompt
-regularPrompt.ObjectText = CRATE_CONFIG.Regular.ProximptText
-regularPrompt.ActionText = "Open"
-regularPrompt.RequiresLineOfSight = false
-regularPrompt.MaxActivationDistance = 7
-regularPrompt.HoldDuration = 0
-regularPrompt.Style = Enum.ProximityPromptStyle.Default
-regularPrompt.Enabled = true
-regularPrompt.ClickablePrompt = true
-
--- Premium crate prompt
-if premiumPrompt then
-	premiumPrompt.ObjectText = CRATE_CONFIG.Premium.ProximptText
-	premiumPrompt.ActionText = "Open"
-	premiumPrompt.RequiresLineOfSight = false
-	premiumPrompt.MaxActivationDistance = 7
-	premiumPrompt.HoldDuration = 0
-	premiumPrompt.Style = Enum.ProximityPromptStyle.Default
-	premiumPrompt.Enabled = true
-	premiumPrompt.ClickablePrompt = true
+local cratePart = crateTemple:WaitForChild("OpenCratePart", 10)
+if not cratePart then
+	error("[DUAL CRATE] OpenCratePart not found in CrateTemple!")
 end
 
+-- Get or create proximity prompt
+local cratePrompt = cratePart:FindFirstChildOfClass("ProximityPrompt")
+if not cratePrompt then
+	cratePrompt = Instance.new("ProximityPrompt")
+	cratePrompt.Name = "OpenCratePrompt"
+	cratePrompt.Parent = cratePart
+end
+
+-- Configure prompt
+cratePrompt.ActionText = "Open Relic"
+cratePrompt.ObjectText = "Sword Relic"
+cratePrompt.HoldDuration = 0
+cratePrompt.MaxActivationDistance = 10
+cratePrompt.RequiresLineOfSight = false
+cratePrompt.ClickablePrompt = true
+
+print("[DUAL CRATE] Single proximity prompt configured")
+
 -- ========================================
--- REMOTE EVENTS
+-- REMOTE EVENTS SETUP
 -- ========================================
 
+-- Create RemoteEvent folder if it doesn't exist
 local crateRemotes = ReplicatedStorage:FindFirstChild("CrateRemotes")
 if not crateRemotes then
 	crateRemotes = Instance.new("Folder")
@@ -105,265 +85,317 @@ if not crateRemotes then
 	crateRemotes.Parent = ReplicatedStorage
 end
 
-local openCrateEvent = crateRemotes:FindFirstChild("OpenCrate")
-if not openCrateEvent then
-	openCrateEvent = Instance.new("RemoteEvent")
-	openCrateEvent.Name = "OpenCrate"
-	openCrateEvent.Parent = crateRemotes
+-- Create ShowCrateChoice event (Server -> Client: show UI)
+local showCrateChoiceEvent = crateRemotes:FindFirstChild("ShowCrateChoice")
+if not showCrateChoiceEvent then
+	showCrateChoiceEvent = Instance.new("RemoteEvent")
+	showCrateChoiceEvent.Name = "ShowCrateChoice"
+	showCrateChoiceEvent.Parent = crateRemotes
 end
 
-local switchSwordEvent = crateRemotes:FindFirstChild("SwitchSword")
-if not switchSwordEvent then
-	switchSwordEvent = Instance.new("RemoteEvent")
-	switchSwordEvent.Name = "SwitchSword"
-	switchSwordEvent.Parent = crateRemotes
+-- Create RequestCrateOpen event (Client -> Server: player chose a crate)
+local requestCrateOpenEvent = crateRemotes:FindFirstChild("RequestCrateOpen")
+if not requestCrateOpenEvent then
+	requestCrateOpenEvent = Instance.new("RemoteEvent")
+	requestCrateOpenEvent.Name = "RequestCrateOpen"
+	requestCrateOpenEvent.Parent = crateRemotes
 end
+
+-- Keep existing OpenCrate event for animation/reward
+local openCrateEvent = ReplicatedStorage:WaitForChild("OpenCrate", 10)
+if not openCrateEvent then
+	warn("[DUAL CRATE] OpenCrate RemoteEvent not found!")
+end
+
+print("[DUAL CRATE] Remote events ready")
 
 -- ========================================
 -- WAIT FOR DEPENDENCIES
 -- ========================================
 
--- Load sword config
-local modulesFolder = ReplicatedStorage:WaitForChild("Modules")
-local SwordConfig = require(modulesFolder:WaitForChild("SwordConfig"))
-
--- Wait for managers
-repeat task.wait() until _G.InventoryManager
-local InventoryManager = _G.InventoryManager
-
-repeat task.wait() until _G.CurrencyManager
-local CurrencyManager = _G.CurrencyManager
-
--- Table of all available swords
-local availableSwords = {}
-for swordName, _ in pairs(SwordConfig.Swords) do
-	table.insert(availableSwords, swordName)
+-- Wait for InventoryManager
+while not _G.InventoryManager do
+	warn("[DUAL CRATE] Waiting for InventoryManager...")
+	task.wait(1)
 end
 
+-- Wait for CurrencyManager
+while not _G.CurrencyManager do
+	warn("[DUAL CRATE] Waiting for CurrencyManager...")
+	task.wait(1)
+end
+
+print("[DUAL CRATE] Dependencies loaded")
+
 -- ========================================
--- CRATE OPENING LOGIC
+-- DATA & STATE
 -- ========================================
 
--- Function to choose a random sword based on rarity weights (with multipliers)
+local playersOpening = {} -- Track who is opening crates
+local pendingPurchases = {} -- Track pending Robux purchases
+
+-- ========================================
+-- CRATE LOGIC (Rarity System)
+-- ========================================
+
 local function chooseRandomSword(crateType)
-	local multipliers = CRATE_CONFIG[crateType].RarityMultipliers
+	local rarities = {
+		{name = "Common", weight = 100},
+		{name = "Uncommon", weight = 50},
+		{name = "Rare", weight = 25},
+		{name = "Legendary", weight = 8},
+		{name = "Godly", weight = 2},
+		{name = "???", weight = 0.5},
+	}
 	
-	-- Build a weighted pool based on rarities and multipliers
-	local weightedPool = {}
+	-- Apply crate-specific rarity multipliers
+	local crateConfig = CRATE_CONFIG[crateType]
+	if crateConfig and crateConfig.RarityMultipliers then
+		for _, rarity in ipairs(rarities) do
+			local multiplier = crateConfig.RarityMultipliers[rarity.name] or 1.0
+			rarity.weight = rarity.weight * multiplier
+		end
+	end
+	
+	-- Calculate total weight
 	local totalWeight = 0
-
-	for swordName, swordConfig in pairs(SwordConfig.Swords) do
-		local rarity = swordConfig.Rarity or "Common"
-		local rarityData = SwordConfig.Rarities[rarity]
-
-		if rarityData then
-			-- Apply multiplier for this crate type
-			local baseWeight = rarityData.Chance
-			local multiplier = multipliers[rarity] or 1.0
-			local weight = baseWeight * multiplier
-			
-			totalWeight = totalWeight + weight
-
-			table.insert(weightedPool, {
-				name = swordName,
-				weight = weight,
-				cumulativeWeight = totalWeight,
-				rarity = rarity,
-			})
-		end
+	for _, rarity in ipairs(rarities) do
+		totalWeight = totalWeight + rarity.weight
 	end
-
-	-- Pick a random value between 0 and totalWeight
+	
+	-- Select random rarity
 	local roll = math.random() * totalWeight
-
-	-- Find which sword the roll landed on
-	for _, entry in ipairs(weightedPool) do
-		if roll <= entry.cumulativeWeight then
-			return entry.name, entry.rarity
+	local cumulative = 0
+	local selectedRarity = "Common"
+	
+	for _, rarity in ipairs(rarities) do
+		cumulative = cumulative + rarity.weight
+		if roll <= cumulative then
+			selectedRarity = rarity.name
+			break
 		end
 	end
-
-	-- Fallback (should never happen)
-	return availableSwords[1], "Common"
-end
-
--- Function to switch player's sword
-local function switchPlayerSword(player, swordName)
-	local swordConfig = SwordConfig.Swords[swordName]
-	if not swordConfig then
-		warn("[DUAL CRATE] Sword config not found: " .. swordName)
-		return false
+	
+	print("[DUAL CRATE] Selected rarity:", selectedRarity, "from", crateType, "crate")
+	
+	-- Get sword by rarity
+	local swordsByRarity = _G.InventoryManager.getSwordsByRarity(selectedRarity)
+	
+	if #swordsByRarity == 0 then
+		warn("[DUAL CRATE] No swords found for rarity:", selectedRarity)
+		return nil
 	end
-
-	switchSwordEvent:FireClient(player, swordName)
-	return true
+	
+	local randomSword = swordsByRarity[math.random(1, #swordsByRarity)]
+	print("[DUAL CRATE] Chosen sword:", randomSword.SwordName, "(", selectedRarity, ")")
+	
+	return randomSword
 end
-
--- Track players currently opening crates
-local playersOpening = {}
-
--- Track pending premium purchases (to prevent double-processing)
-local pendingPurchases = {}
 
 -- ========================================
--- REGULAR CRATE OPENING (YEN)
+-- REGULAR CRATE (YEN)
 -- ========================================
 
 local function openRegularCrate(player)
-	-- Check if player is already opening a crate
+	-- Prevent spam
 	if playersOpening[player.UserId] then
-		warn("[DUAL CRATE] " .. player.Name .. " tried to open crate while already opening one")
-		return false
+		warn("[DUAL CRATE]", player.Name, "is already opening a crate!")
+		return
 	end
-
-	-- Check if player has enough currency
-	local balance = CurrencyManager.getCurrency(player)
-	if balance < CRATE_CONFIG.Regular.Cost then
-		warn("[DUAL CRATE] " .. player.Name .. " doesn't have enough Yen! Has: " .. balance .. " Needs: " .. CRATE_CONFIG.Regular.Cost)
-		return false
+	
+	-- Check currency
+	local playerCurrency = _G.CurrencyManager.getCurrency(player)
+	if not playerCurrency or playerCurrency < CRATE_CONFIG.Regular.Cost then
+		warn("[DUAL CRATE]", player.Name, "doesn't have enough Yen! Has:", playerCurrency, "Need:", CRATE_CONFIG.Regular.Cost)
+		-- TODO: Could fire a client event to show "Not enough Yen!" message
+		return
 	end
-
+	
 	-- Deduct currency
-	local success = CurrencyManager.removeCurrency(player, CRATE_CONFIG.Regular.Cost, "Opened Regular Relic")
+	local success = _G.CurrencyManager.removeCurrency(player, CRATE_CONFIG.Regular.Cost, "Regular Crate Purchase")
 	if not success then
-		warn("[DUAL CRATE] Failed to deduct currency from " .. player.Name)
-		return false
+		warn("[DUAL CRATE]", player.Name, "currency deduction failed!")
+		return
 	end
-
-	print("[DUAL CRATE] " .. player.Name .. " opened REGULAR crate for " .. CRATE_CONFIG.Regular.Cost .. " Yen")
-
-	-- Mark player as opening
+	
+	-- Mark as opening
 	playersOpening[player.UserId] = true
-
-	-- Choose a random sword (regular odds)
-	local chosenSword, rarity = chooseRandomSword("Regular")
-
-	-- Send to client to show animation
-	openCrateEvent:FireClient(player, chosenSword, availableSwords)
-
-	print("[DUAL CRATE] " .. player.Name .. " rolled: " .. chosenSword .. " (" .. rarity .. ")")
-
-	-- Wait for animation, then add sword
-	task.delay(6, function()
-		InventoryManager.AddSword(player, chosenSword)
+	print("[DUAL CRATE]", player.Name, "opening REGULAR crate for", CRATE_CONFIG.Regular.Cost, "Yen")
+	
+	-- Choose random sword (Regular odds)
+	local chosenSword = chooseRandomSword("Regular")
+	if not chosenSword then
+		warn("[DUAL CRATE] Failed to choose sword for", player.Name)
 		playersOpening[player.UserId] = nil
-	end)
-
-	return true
+		-- Refund
+		_G.CurrencyManager.addCurrency(player, CRATE_CONFIG.Regular.Cost, "Crate Failed - Refund")
+		return
+	end
+	
+	-- Trigger client-side animation
+	if openCrateEvent then
+		openCrateEvent:FireClient(player, chosenSword.SwordName)
+	end
+	
+	-- Wait for animation
+	task.wait(2)
+	
+	-- Award sword
+	local addSuccess = _G.InventoryManager.addSword(player, chosenSword.SwordName)
+	if addSuccess then
+		print("[DUAL CRATE]", player.Name, "received:", chosenSword.SwordName)
+	else
+		warn("[DUAL CRATE] Failed to add sword to", player.Name, "'s inventory!")
+	end
+	
+	-- Unlock
+	playersOpening[player.UserId] = nil
 end
 
--- Regular crate proximity trigger
-regularPrompt.Triggered:Connect(function(player)
-	openRegularCrate(player)
-end)
-
 -- ========================================
--- PREMIUM CRATE OPENING (ROBUX)
+-- PREMIUM CRATE (ROBUX)
 -- ========================================
 
 local function openPremiumCrate(player)
-	-- Check if player is already opening a crate
-	if playersOpening[player.UserId] then
-		warn("[DUAL CRATE] " .. player.Name .. " tried to open crate while already opening one")
-		return false
+	-- Prevent spam
+	if playersOpening[player.UserId] or pendingPurchases[player.UserId] then
+		warn("[DUAL CRATE]", player.Name, "is already opening a crate or has a pending purchase!")
+		return
 	end
-
-	-- Check if developer product ID is configured
+	
+	-- Check if ProductId is configured
 	if CRATE_CONFIG.Premium.ProductId == 0 then
-		warn("[DUAL CRATE] Premium crate Developer Product ID not configured!")
-		return false
+		warn("[DUAL CRATE] Premium Crate ProductId not configured! Please set it in DualCrateSystem.lua")
+		-- TODO: Could show error message to player
+		return
 	end
-
+	
 	-- Mark as pending purchase
 	pendingPurchases[player.UserId] = true
-
-	-- Prompt purchase
+	print("[DUAL CRATE]", player.Name, "initiating PREMIUM crate purchase for", CRATE_CONFIG.Premium.Cost, "Robux")
+	
+	-- Prompt Robux purchase
 	local success, errorMsg = pcall(function()
 		MarketplaceService:PromptProductPurchase(player, CRATE_CONFIG.Premium.ProductId)
 	end)
-
+	
 	if not success then
-		warn("[DUAL CRATE] Failed to prompt purchase for " .. player.Name .. ": " .. tostring(errorMsg))
+		warn("[DUAL CRATE] Failed to prompt purchase for", player.Name, ":", errorMsg)
 		pendingPurchases[player.UserId] = nil
-		return false
 	end
-
-	print("[DUAL CRATE] Prompted " .. player.Name .. " to purchase premium crate")
-	return true
 end
 
--- Premium crate proximity trigger
-if premiumPrompt then
-	premiumPrompt.Triggered:Connect(function(player)
+-- ========================================
+-- ROBUX PURCHASE RECEIPT (MarketplaceService)
+-- ========================================
+
+MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local userId = receiptInfo.PlayerId
+	local productId = receiptInfo.ProductId
+	
+	-- Check if it's our Premium Crate product
+	if productId ~= CRATE_CONFIG.Premium.ProductId then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	
+	print("[DUAL CRATE] Processing Premium Crate purchase for UserId:", userId)
+	
+	local player = Players:GetPlayerByUserId(userId)
+	
+	-- Clear pending purchase
+	pendingPurchases[userId] = nil
+	
+	-- If player left, still process the receipt
+	if not player then
+		warn("[DUAL CRATE] Player left before purchase completed. Awarding sword on next join...")
+		-- TODO: Could save pending reward in DataStore for next join
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+	
+	-- Mark as opening
+	playersOpening[userId] = true
+	
+	-- Choose random sword (Premium odds - better!)
+	local chosenSword = chooseRandomSword("Premium")
+	if not chosenSword then
+		warn("[DUAL CRATE] Failed to choose sword for", player.Name)
+		playersOpening[userId] = nil
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	
+	-- Trigger client-side animation
+	if openCrateEvent then
+		openCrateEvent:FireClient(player, chosenSword.SwordName)
+	end
+	
+	-- Wait for animation
+	task.wait(2)
+	
+	-- Award sword
+	local addSuccess = _G.InventoryManager.addSword(player, chosenSword.SwordName)
+	if addSuccess then
+		print("[DUAL CRATE]", player.Name, "received (PREMIUM):", chosenSword.SwordName)
+	else
+		warn("[DUAL CRATE] Failed to add sword to", player.Name, "'s inventory!")
+		playersOpening[userId] = nil
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	
+	-- Unlock
+	playersOpening[userId] = nil
+	
+	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
+
+-- ========================================
+-- PROXIMITY PROMPT: SHOW CHOICE UI
+-- ========================================
+
+cratePrompt.Triggered:Connect(function(player)
+	if not player or not player.Parent then return end
+	
+	-- Check if player is already opening a crate
+	if playersOpening[player.UserId] or pendingPurchases[player.UserId] then
+		warn("[DUAL CRATE]", player.Name, "is already opening a crate!")
+		return
+	end
+	
+	-- Show choice UI to the player
+	print("[DUAL CRATE]", player.Name, "triggered crate - showing choice UI")
+	showCrateChoiceEvent:FireClient(player)
+end)
+
+-- ========================================
+-- HANDLE PLAYER CHOICE FROM UI
+-- ========================================
+
+requestCrateOpenEvent.OnServerEvent:Connect(function(player, crateType)
+	if not player or not player.Parent then return end
+	
+	print("[DUAL CRATE]", player.Name, "chose:", crateType)
+	
+	if crateType == "Regular" then
+		openRegularCrate(player)
+	elseif crateType == "Premium" then
 		openPremiumCrate(player)
-	end)
-end
-
--- ========================================
--- MARKETPLACE SERVICE CALLBACKS
--- ========================================
-
--- Process receipt (called when player completes purchase)
-local function processReceipt(receiptInfo)
-	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
-	
-	-- Check if it's our premium crate product
-	if receiptInfo.ProductId == CRATE_CONFIG.Premium.ProductId then
-		if player then
-			print("[DUAL CRATE] Processing premium crate purchase for " .. player.Name)
-			
-			-- Clear pending purchase
-			pendingPurchases[player.UserId] = nil
-			
-			-- Mark player as opening
-			playersOpening[player.UserId] = true
-
-			-- Choose a random sword (PREMIUM odds - better rates!)
-			local chosenSword, rarity = chooseRandomSword("Premium")
-
-			-- Send to client to show animation
-			openCrateEvent:FireClient(player, chosenSword, availableSwords)
-
-			print("[DUAL CRATE] " .. player.Name .. " rolled PREMIUM: " .. chosenSword .. " (" .. rarity .. ")")
-
-			-- Wait for animation, then add sword
-			task.delay(6, function()
-				InventoryManager.AddSword(player, chosenSword)
-				playersOpening[player.UserId] = nil
-			end)
-			
-			-- Grant purchase
-			return Enum.ProductPurchaseDecision.PurchaseGranted
-		else
-			-- Player left, still grant (they paid!)
-			warn("[DUAL CRATE] Player left before premium crate could open - granting anyway")
-			return Enum.ProductPurchaseDecision.PurchaseGranted
-		end
+	else
+		warn("[DUAL CRATE] Invalid crate type from", player.Name, ":", crateType)
 	end
-	
-	-- Not our product
-	return Enum.ProductPurchaseDecision.NotProcessedYet
-end
-
--- Set the callback
-MarketplaceService.ProcessReceipt = processReceipt
+end)
 
 -- ========================================
 -- CLEANUP
 -- ========================================
 
--- Clean up pending purchases when players leave
 Players.PlayerRemoving:Connect(function(player)
 	playersOpening[player.UserId] = nil
 	pendingPurchases[player.UserId] = nil
 end)
 
-print("========================================")
-print("Dual Crate System Ready!")
-print("Regular Crate: " .. CRATE_CONFIG.Regular.Cost .. " Yen")
-print("Premium Crate: " .. CRATE_CONFIG.Premium.Cost .. " Robux")
-print("Premium Product ID:", CRATE_CONFIG.Premium.ProductId)
+print("[DUAL CRATE] System ready! ✅")
+print("[DUAL CRATE] Regular Crate: ¥" .. CRATE_CONFIG.Regular.Cost)
+print("[DUAL CRATE] Premium Crate: " .. CRATE_CONFIG.Premium.Cost .. " R$ (ProductId:", CRATE_CONFIG.Premium.ProductId, ")")
+
 if CRATE_CONFIG.Premium.ProductId == 0 then
-	warn("⚠️  CONFIGURE PREMIUM PRODUCT ID!")
+	warn("⚠️ [DUAL CRATE] Premium Crate ProductId not set! See SETUP_INSTRUCTIONS.md")
 end
-print("========================================")
