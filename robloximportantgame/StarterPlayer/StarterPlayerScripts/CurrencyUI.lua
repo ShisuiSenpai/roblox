@@ -4,6 +4,7 @@
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -34,8 +35,8 @@ local CURRENCY_SETTINGS = {
 
 -- ==================== CURRENCY DATA ====================
 
--- This will be replaced with actual currency from server
-local currentCurrency = 6700 -- Test value (will show as "¥  6.7K")
+-- This will be synced from server
+local currentCurrency = 250 -- Starting balance
 
 -- ==================== HELPER FUNCTIONS ====================
 
@@ -164,27 +165,42 @@ _G.CurrencyUI = {
 	formatCurrency = formatCurrency
 }
 
--- ==================== TESTING ====================
+-- ==================== SERVER SYNC ====================
 
--- Test animation (cycles through different values to show formatting)
--- REMOVE THIS in production when you have real currency system
-task.spawn(function()
-	task.wait(3)
+-- Wait for RemoteEvents from server
+local currencyRemotes = ReplicatedStorage:WaitForChild("CurrencyRemotes", 10)
+
+if currencyRemotes then
+	local updateCurrencyEvent = currencyRemotes:WaitForChild("UpdateCurrency", 10)
+	local getCurrencyRemote = currencyRemotes:WaitForChild("GetCurrency", 10)
 	
-	-- Simulate currency changes for testing
-	local testValues = {6700, 12500, 156000, 1200000, 6700}
-	
-	for _, value in ipairs(testValues) do
-		task.wait(2)
-		updateCurrency(value)
+	if updateCurrencyEvent then
+		-- Listen for currency updates from server
+		updateCurrencyEvent.OnClientEvent:Connect(function(newAmount)
+			updateCurrency(newAmount)
+		end)
+		print("[CURRENCY UI] Connected to server currency system")
 	end
 	
-	-- Reset to initial test value
-	task.wait(2)
-	updateCurrency(6700)
-end)
+	-- Request initial currency from server
+	if getCurrencyRemote then
+		task.spawn(function()
+			task.wait(1) -- Wait for server to initialize
+			local success, balance = pcall(function()
+				return getCurrencyRemote:InvokeServer()
+			end)
+			
+			if success and balance then
+				updateCurrency(balance)
+				print("[CURRENCY UI] Initial balance loaded:", formatCurrency(balance))
+			end
+		end)
+	end
+else
+	warn("[CURRENCY UI] Could not find CurrencyRemotes - Currency won't update!")
+end
 
 print("========================================")
 print("Currency UI Ready!")
-print("Current currency:", formatCurrency(currentCurrency))
+print("Starting balance:", formatCurrency(currentCurrency))
 print("========================================")
