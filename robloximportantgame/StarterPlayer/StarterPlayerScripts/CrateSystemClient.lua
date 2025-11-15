@@ -16,10 +16,19 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Detect if player is on mobile device
 local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
--- Wait for RemoteEvents
-local crateRemotes = ReplicatedStorage:WaitForChild("CrateRemotes")
-local openCrateEvent = crateRemotes:WaitForChild("OpenCrate")
-local switchSwordEvent = crateRemotes:WaitForChild("SwitchSword")
+-- Wait for RemoteEvents (directly in ReplicatedStorage)
+local openCrateEvent = ReplicatedStorage:WaitForChild("OpenCrate", 15)
+local switchSwordEvent = ReplicatedStorage:WaitForChild("SwitchSword", 15)
+
+if not openCrateEvent then
+	warn("[CRATE CLIENT] OpenCrate RemoteEvent not found!")
+	return
+end
+
+if not switchSwordEvent then
+	warn("[CRATE CLIENT] SwitchSword RemoteEvent not found!")
+	return
+end
 
 -- Load VF models folder and organized folders
 local vfModelsFolder = ReplicatedStorage:WaitForChild("VFmodels")
@@ -841,4 +850,4 @@ task.spawn(function()
 	end
 end)
 
-print("Crate System Client loaded!")
+print("[CRATE CLIENT] ✅ Crate System Client loaded! Ready for crate openings.")

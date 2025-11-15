@@ -104,10 +104,15 @@ print("[DUAL CRATE] Proximity prompts configured")
 -- REMOTE EVENTS SETUP
 -- ========================================
 
--- Keep existing OpenCrate event for animation/reward
-local openCrateEvent = ReplicatedStorage:WaitForChild("OpenCrate", 10)
+-- Create or get OpenCrate event for animation/reward
+local openCrateEvent = ReplicatedStorage:FindFirstChild("OpenCrate")
 if not openCrateEvent then
-	warn("[DUAL CRATE] OpenCrate RemoteEvent not found!")
+	openCrateEvent = Instance.new("RemoteEvent")
+	openCrateEvent.Name = "OpenCrate"
+	openCrateEvent.Parent = ReplicatedStorage
+	print("[DUAL CRATE] Created OpenCrate RemoteEvent")
+else
+	print("[DUAL CRATE] Found existing OpenCrate RemoteEvent")
 end
 
 print("[DUAL CRATE] Remote events ready")
@@ -126,6 +131,17 @@ end
 while not _G.CurrencyManager do
 	warn("[DUAL CRATE] Waiting for CurrencyManager...")
 	task.wait(1)
+end
+
+-- Load SwordConfig for getting all swords
+local modulesFolder = ReplicatedStorage:WaitForChild("Modules", 10)
+if not modulesFolder then
+	error("[DUAL CRATE] Modules folder not found in ReplicatedStorage!")
+end
+
+local SwordConfig = require(modulesFolder:WaitForChild("SwordConfig", 10))
+if not SwordConfig then
+	error("[DUAL CRATE] SwordConfig not found!")
 end
 
 print("[DUAL CRATE] Dependencies loaded")
@@ -236,9 +252,15 @@ local function openRegularCrate(player)
 		return
 	end
 	
+	-- Get all sword names for animation
+	local allSwordNames = {}
+	for swordName, _ in pairs(SwordConfig.Swords) do
+		table.insert(allSwordNames, swordName)
+	end
+	
 	-- Trigger client-side animation
 	if openCrateEvent then
-		openCrateEvent:FireClient(player, chosenSword.SwordName)
+		openCrateEvent:FireClient(player, chosenSword.SwordName, allSwordNames)
 	end
 	
 	-- Wait for animation
@@ -285,7 +307,16 @@ local function openPremiumCrate(player)
 	if not success then
 		warn("[DUAL CRATE] Failed to prompt purchase for", player.Name, ":", errorMsg)
 		pendingPurchases[player.UserId] = nil
+		return
 	end
+	
+	-- Auto-clear pending purchase after 60 seconds (in case purchase is cancelled/fails)
+	task.delay(60, function()
+		if pendingPurchases[player.UserId] then
+			warn("[DUAL CRATE] Clearing stale pending purchase for", player.Name)
+			pendingPurchases[player.UserId] = nil
+		end
+	end)
 end
 
 -- ========================================
@@ -326,9 +357,15 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	
+	-- Get all sword names for animation
+	local allSwordNames = {}
+	for swordName, _ in pairs(SwordConfig.Swords) do
+		table.insert(allSwordNames, swordName)
+	end
+	
 	-- Trigger client-side animation
 	if openCrateEvent then
-		openCrateEvent:FireClient(player, chosenSword.SwordName)
+		openCrateEvent:FireClient(player, chosenSword.SwordName, allSwordNames)
 	end
 	
 	-- Wait for animation
