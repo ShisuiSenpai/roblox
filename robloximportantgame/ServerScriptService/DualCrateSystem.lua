@@ -18,27 +18,19 @@ local CRATE_CONFIG = {
 		Cost = 250,
 		CostType = "Currency", -- Uses Yen
 		ProximityText = "Regular Relic | ¥250",
-		RarityMultipliers = {
-			["Common"] = 1.0,
-			["Uncommon"] = 1.0,
-			["Rare"] = 1.0,
-			["Legendary"] = 1.0,
-			["Godly"] = 1.0,
-			["???"] = 1.0,
-		},
+		UseStandardRarities = true,
 	},
 	Premium = {
 		Cost = 99, -- Robux price
 		ProductId = 0, -- ⚠️ USER MUST SET THIS! Create a Developer Product
 		CostType = "Robux", -- Uses Robux via Developer Product
-		ProximityText = "Premium Relic | 99 R$",
-		RarityMultipliers = {
-			["Common"] = 0.5,     -- Less common drops
-			["Uncommon"] = 0.7,   -- Slightly less uncommon
-			["Rare"] = 1.2,       -- 20% better chance
-			["Legendary"] = 2.0,  -- 2x better chance
-			["Godly"] = 3.0,      -- 3x better chance
-			["???"] = 2.5,        -- 2.5x better chance
+		ProximityText = "Premium Relic ✨ 2x LUCK | 99 R$",
+		UseStandardRarities = false, -- Premium uses ONLY high-tier drops
+		PremiumRarities = {
+			-- Only Legendary, Godly, and ???
+			{name = "Legendary", weight = 55}, -- 55%
+			{name = "Godly", weight = 40},     -- 40%
+			{name = "???", weight = 5},        -- 5%
 		},
 	},
 }
@@ -150,22 +142,24 @@ local pendingPurchases = {} -- Track pending Robux purchases
 -- ========================================
 
 local function chooseRandomSword(crateType)
-	local rarities = {
-		{name = "Common", weight = 100},
-		{name = "Uncommon", weight = 50},
-		{name = "Rare", weight = 25},
-		{name = "Legendary", weight = 8},
-		{name = "Godly", weight = 2},
-		{name = "???", weight = 0.5},
-	}
-	
-	-- Apply crate-specific rarity multipliers
 	local crateConfig = CRATE_CONFIG[crateType]
-	if crateConfig and crateConfig.RarityMultipliers then
-		for _, rarity in ipairs(rarities) do
-			local multiplier = crateConfig.RarityMultipliers[rarity.name] or 1.0
-			rarity.weight = rarity.weight * multiplier
-		end
+	local rarities
+	
+	-- Check if this crate uses premium rarities (only high-tier)
+	if crateConfig and not crateConfig.UseStandardRarities and crateConfig.PremiumRarities then
+		-- Premium Crate: Only Legendary, Godly, ???
+		rarities = crateConfig.PremiumRarities
+		print("[DUAL CRATE] Using PREMIUM rarities (Legendary/Godly/??? only)")
+	else
+		-- Regular Crate: Standard drop table
+		rarities = {
+			{name = "Common", weight = 100},
+			{name = "Uncommon", weight = 50},
+			{name = "Rare", weight = 25},
+			{name = "Legendary", weight = 8},
+			{name = "Godly", weight = 2},
+			{name = "???", weight = 0.5},
+		}
 	end
 	
 	-- Calculate total weight
@@ -187,7 +181,7 @@ local function chooseRandomSword(crateType)
 		end
 	end
 	
-	print("[DUAL CRATE] Selected rarity:", selectedRarity, "from", crateType, "crate")
+	print("[DUAL CRATE] Selected rarity:", selectedRarity, "from", crateType, "crate (Roll:", string.format("%.2f", roll), "/ Total:", totalWeight, ")")
 	
 	-- Get sword by rarity
 	local swordsByRarity = _G.InventoryManager.getSwordsByRarity(selectedRarity)

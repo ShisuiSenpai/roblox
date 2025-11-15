@@ -2,8 +2,15 @@
 
 ## 📋 Overview
 You now have **TWO crate types** with separate proximity prompts:
-- **Regular Relic (Normal Crate)** - Costs 250 Yen (in-game currency)
-- **Premium Relic (Premium Crate)** - Costs Robux (real money), **2-3x better drop rates**
+- **Regular Relic (Normal Crate)** - Costs 250 Yen (in-game currency) - Standard drop rates (all rarities)
+- **Premium Relic (Premium Crate)** - Costs Robux (real money) - **✨ 2x LUCK - ONLY drops Legendary, Godly, or ??? items!**
+
+### Premium Crate Drop Rates:
+- **Legendary:** 55% chance
+- **Godly:** 40% chance
+- **???:** 5% chance
+
+**No Commons, Uncommons, or Rares!** Every premium crate guarantees a high-tier item!
 
 ---
 
@@ -62,23 +69,36 @@ Premium = {
 
 ## 📊 STEP 3: Adjust Drop Rates (Optional)
 
-In `DualCrateSystem.lua`, you can customize the rarity multipliers:
+### Regular Crate (Standard Rarities):
+In `DualCrateSystem.lua` line ~155, you can adjust the weights:
+
+```lua
+-- Inside chooseRandomSword function for Regular crate
+rarities = {
+    {name = "Common", weight = 100},    -- Most common
+    {name = "Uncommon", weight = 50},   -- 2x rarer
+    {name = "Rare", weight = 25},       -- 4x rarer
+    {name = "Legendary", weight = 8},   -- Very rare
+    {name = "Godly", weight = 2},       -- Extremely rare
+    {name = "???", weight = 0.5},       -- Ultra rare
+}
+```
+
+### Premium Crate (High-Tier Only):
+In `DualCrateSystem.lua` line ~30, you can adjust the percentages:
 
 ```lua
 Premium = {
     -- ... other settings ...
-    RarityMultipliers = {
-        ["Common"] = 0.5,    -- 50% chance (half as common)
-        ["Uncommon"] = 0.7,  -- 70% chance
-        ["Rare"] = 1.2,      -- 120% chance (20% boost)
-        ["Legendary"] = 2.0, -- 200% chance (DOUBLE!)
-        ["Godly"] = 3.0,     -- 300% chance (TRIPLE!)
-        ["???"] = 2.5,       -- 250% chance
+    PremiumRarities = {
+        {name = "Legendary", weight = 55}, -- 55%
+        {name = "Godly", weight = 40},     -- 40%
+        {name = "???", weight = 5},        -- 5%
     },
 }
 ```
 
-**Example:** If "Godly" normally has 5% chance, premium crate makes it 15% (5% × 3.0)
+**Want more Godly drops?** Change weights to `{40, 55, 5}` for 40% Legendary, 55% Godly, 5% ???
 
 ---
 
@@ -93,10 +113,11 @@ Premium = {
 
 ### Test Premium Crate:
 1. Walk up to **PremiumCrate**
-2. Should show: `"Premium Relic | 99 R$"`
+2. Should show: `"Premium Relic ✨ 2x LUCK | 99 R$"`
 3. Click/press E
 4. **Robux purchase prompt appears**
 5. (In Studio, you can't actually purchase, but prompt should appear)
+6. **Every premium crate will drop Legendary, Godly, or ??? only!**
 
 ---
 
@@ -154,16 +175,27 @@ particles.Parent = premiumPart
 - **Regular:** 250 Yen (achievable through gameplay - 7 kills or 3 wins + 1 kill)
 - **Premium:** 99 Robux (affordable impulse purchase)
 
-### Value Proposition:
-- Premium gives **2-3x better odds** for rare items
-- Players who want instant gratification buy premium
-- Free players grind Yen for regular crates
-- Both are valuable!
+### Value Proposition (MUCH STRONGER NOW!):
+- Premium crate **GUARANTEES** a Legendary, Godly, or ??? drop
+- **NO commons, uncommons, or rares** - every purchase is valuable
+- **55% chance for Legendary** (regular crate: ~4% chance)
+- **40% chance for Godly** (regular crate: ~1% chance)
+- **5% chance for ???** (regular crate: ~0.3% chance)
+
+**This is INSANE value!** Premium crate is now **10-100x better** than regular crate for rare items!
+
+### Why Players Will Buy:
+- ✅ **Guaranteed high-tier item** (no wasted purchases)
+- ✅ **Much faster progression** (skip grinding)
+- ✅ **Collection completion** (easier to get Godly/??? items)
+- ✅ **Bragging rights** (premium items are rare)
 
 ### Recommended Robux Prices:
-- **Single Premium Crate:** 99 R$ (good entry point)
+- **Single Premium Crate:** 99 R$ (excellent value)
 - **3-Pack Bundle:** 249 R$ (save 48 R$) - *implement later*
 - **10-Pack Bundle:** 799 R$ (save 191 R$) - *implement later*
+
+**With guaranteed Legendary+ drops, 99 R$ is a STEAL!** Consider pricing higher (149-199 R$) for more revenue.
 
 ---
 
