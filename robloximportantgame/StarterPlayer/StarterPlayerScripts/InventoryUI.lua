@@ -441,18 +441,7 @@ local function createInventoryGUI()
 	titleText.TextXAlignment = Enum.TextXAlignment.Left
 	titleText.Parent = titleBar
 
-	-- Close hint text
-	local closeHint = Instance.new("TextLabel")
-	closeHint.Name = "CloseHint"
-	closeHint.Size = UDim2.new(0, 150, 1, 0)
-	closeHint.Position = UDim2.new(1, -160, 0, 0)
-	closeHint.BackgroundTransparency = 1
-	closeHint.Text = "Press [TAB] to close"
-	closeHint.TextColor3 = Color3.fromRGB(150, 150, 160)
-	closeHint.TextSize = 12
-	closeHint.Font = Enum.Font.GothamMedium
-	closeHint.TextXAlignment = Enum.TextXAlignment.Right
-	closeHint.Parent = titleBar
+	-- Close hint removed (TAB keybind disabled)
 
 	-- Container for cards (scrolling frame)
 	local container = Instance.new("ScrollingFrame")
@@ -546,6 +535,19 @@ end
 
 -- Toggle inventory visibility
 local function toggleInventory()
+	-- Block inventory during active rounds
+	if _G.GameState and _G.GameState.isInRound() then
+		-- Force close if somehow open
+		if isInventoryOpen and inventoryGui then
+			isInventoryOpen = false
+			inventoryGui.Enabled = false
+			if inventoryGui.Parent then
+				inventoryGui:Destroy()
+				inventoryGui = nil
+			end
+		end
+		return -- Block opening inventory during rounds
+	end
 	-- Request latest inventory from server
 	local success, inventory = pcall(function()
 		return getInventoryRemote:InvokeServer()
@@ -583,9 +585,7 @@ local function toggleInventory()
 			if titleBar then
 				titleBar.BackgroundTransparency = 1
 				local titleText = titleBar:FindFirstChild("TitleText")
-				local closeHint = titleBar:FindFirstChild("CloseHint")
 				if titleText then titleText.TextTransparency = 1 end
-				if closeHint then closeHint.TextTransparency = 1 end
 			end
 
 			if container then
@@ -625,12 +625,8 @@ local function toggleInventory()
 				}):Play()
 
 				local titleText = titleBar:FindFirstChild("TitleText")
-				local closeHint = titleBar:FindFirstChild("CloseHint")
 				if titleText then
 					TweenService:Create(titleText, tweenInfo, {TextTransparency = 0}):Play()
-				end
-				if closeHint then
-					TweenService:Create(closeHint, tweenInfo, {TextTransparency = 0}):Play()
 				end
 			end
 
@@ -690,12 +686,8 @@ local function toggleInventory()
 				}):Play()
 
 				local titleText = titleBar:FindFirstChild("TitleText")
-				local closeHint = titleBar:FindFirstChild("CloseHint")
 				if titleText then
 					TweenService:Create(titleText, tweenInfo, {TextTransparency = 1}):Play()
-				end
-				if closeHint then
-					TweenService:Create(closeHint, tweenInfo, {TextTransparency = 1}):Play()
 				end
 			end
 
@@ -740,14 +732,7 @@ end
 -- INPUT HANDLING
 -- ========================================
 
--- Listen for TAB key to open/close inventory
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-
-	if input.KeyCode == Enum.KeyCode.Tab then
-		toggleInventory()
-	end
-end)
+-- TAB keybind removed - inventory only accessible via button
 
 -- ========================================
 -- INVENTORY BUTTON
@@ -865,3 +850,32 @@ end)
 createInventoryButton()
 
 print("Inventory UI loaded!")
+
+-- ==================== ROUND STATE LISTENER ====================
+
+-- Listen for round state changes to disable inventory during rounds
+local roundStatusEvent = ReplicatedStorage:WaitForChild("RoundStatus", 10)
+
+if roundStatusEvent then
+	roundStatusEvent.OnClientEvent:Connect(function(status, data)
+		-- When round starts, force close inventory and disable button
+		if status == "roundStart" or status == "countdown" then
+			-- Force close inventory if open
+			if isInventoryOpen and inventoryGui then
+				isInventoryOpen = false
+				inventoryGui.Enabled = false
+				if inventoryGui.Parent then
+					inventoryGui:Destroy()
+					inventoryGui = nil
+				end
+				print("[INVENTORY] Closed for round start")
+			end
+			
+		-- When in lobby, inventory is accessible
+		elseif status == "waitingForPlayers" or status == "intermission" then
+			-- Inventory is allowed in lobby
+		end
+	end)
+	
+	print("[INVENTORY] Round state listener active - Inventory disabled during rounds")
+end

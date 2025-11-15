@@ -323,11 +323,12 @@ task.spawn(function()
 		dotAnimation = nil
 	end
 	
-	-- Change text to "Ready!"
+	-- Change text to "Ready!" and ensure it's visible
 	loadingText.Text = "Ready!"
+	loadingText.TextTransparency = 0
 	
-	-- Wait a moment
-	task.wait(0.3)
+	-- Wait to show "Ready!" message clearly
+	task.wait(0.8)
 	
 	-- Fade out the loading screen
 	local fadeOutTween = TweenService:Create(
