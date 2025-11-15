@@ -756,14 +756,16 @@ local function createInventoryButton()
 	button.Position = UDim2.new(0, 10, 0.5, 50) -- Left middle, shifted down to make room for currency display
 	button.AnchorPoint = Vector2.new(0, 0.5) -- Center vertically
 	button.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-	button.BackgroundTransparency = 0.1
+	button.BackgroundTransparency = 1 -- Start invisible
 	button.BorderSizePixel = 0
 	button.AutoButtonColor = false
 	button.Text = "Inventory"
 	button.TextColor3 = Color3.fromRGB(244, 244, 255)
 	button.TextSize = 13
+	button.TextTransparency = 1 -- Start invisible
 	button.Font = Enum.Font.GothamBold
 	button.TextWrapped = true
+	button.Visible = false -- Start hidden
 	button.Parent = buttonGui
 
 	-- Rounded corners
@@ -775,7 +777,7 @@ local function createInventoryButton()
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(252, 252, 252)
 	stroke.Thickness = 1.5
-	stroke.Transparency = 0.6
+	stroke.Transparency = 1 -- Start invisible
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = button
 
@@ -847,19 +849,22 @@ task.spawn(function()
 end)
 
 -- Create inventory button
-createInventoryButton()
+local inventoryButtonGui = createInventoryButton()
+local inventoryButton = inventoryButtonGui:FindFirstChild("InventoryButton")
 
 print("Inventory UI loaded!")
 
 -- ==================== ROUND STATE LISTENER ====================
 
--- Listen for round state changes to disable inventory during rounds
+-- Listen for round state changes to control inventory visibility
 local roundStatusEvent = ReplicatedStorage:WaitForChild("RoundStatus", 10)
 
-if roundStatusEvent then
+if roundStatusEvent and inventoryButton then
+	local buttonStroke = inventoryButton:FindFirstChild("UIStroke")
+	
 	roundStatusEvent.OnClientEvent:Connect(function(status, data)
-		-- When round starts, force close inventory and disable button
-		if status == "roundStart" or status == "countdown" then
+		-- Hide button during countdown and rounds
+		if status == "countdown" or status == "roundStart" then
 			-- Force close inventory if open
 			if isInventoryOpen and inventoryGui then
 				isInventoryOpen = false
@@ -868,14 +873,39 @@ if roundStatusEvent then
 					inventoryGui:Destroy()
 					inventoryGui = nil
 				end
-				print("[INVENTORY] Closed for round start")
+				print("[INVENTORY] Closed for round")
 			end
 			
-		-- When in lobby, inventory is accessible
+			-- Hide the button with fade out
+			inventoryButton.Visible = false
+			inventoryButton.BackgroundTransparency = 1
+			inventoryButton.TextTransparency = 1
+			if buttonStroke then
+				buttonStroke.Transparency = 1
+			end
+			
+		-- Show button in lobby with fade in
 		elseif status == "waitingForPlayers" or status == "intermission" then
-			-- Inventory is allowed in lobby
+			inventoryButton.Visible = true
+			
+			-- Fade in animation
+			local fadeIn = TweenService:Create(
+				inventoryButton,
+				TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{BackgroundTransparency = 0.1, TextTransparency = 0}
+			)
+			fadeIn:Play()
+			
+			if buttonStroke then
+				local strokeFade = TweenService:Create(
+					buttonStroke,
+					TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{Transparency = 0.6}
+				)
+				strokeFade:Play()
+			end
 		end
 	end)
 	
-	print("[INVENTORY] Round state listener active - Inventory disabled during rounds")
+	print("[INVENTORY] Round state listener active - Button visibility controlled")
 end

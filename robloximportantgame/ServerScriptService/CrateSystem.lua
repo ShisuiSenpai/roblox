@@ -18,14 +18,14 @@ local proximityPrompt = openCratePart:WaitForChild("OpenSwordBox")
 -- ========================================
 
 -- Configure the ProximityPrompt with default Roblox UI
-proximityPrompt.ObjectText = "Relic" -- Main label
+proximityPrompt.ObjectText = "Relic | ¥250" -- Main label with price
 proximityPrompt.ActionText = "Open" -- Action text
 proximityPrompt.RequiresLineOfSight = false -- Always visible when in range (no obstruction check)
 proximityPrompt.MaxActivationDistance = 7 -- Distance in studs (7 studs as requested)
 proximityPrompt.HoldDuration = 0 -- Instant activation
 proximityPrompt.Style = Enum.ProximityPromptStyle.Default -- Use default Roblox UI
 proximityPrompt.Enabled = true
-proximityPrompt.ClickablePrompt = false -- Disable click-to-activate (use key/button only)
+proximityPrompt.ClickablePrompt = true -- Allow click-to-activate
 
 -- Get or create RemoteEvents
 local crateRemotes = ReplicatedStorage:FindFirstChild("CrateRemotes")
@@ -53,9 +53,12 @@ end
 local modulesFolder = ReplicatedStorage:WaitForChild("Modules")
 local SwordConfig = require(modulesFolder:WaitForChild("SwordConfig"))
 
--- Wait for InventoryManager to be ready
+-- Wait for InventoryManager and CurrencyManager to be ready
 repeat task.wait() until _G.InventoryManager
 local InventoryManager = _G.InventoryManager
+
+repeat task.wait() until _G.CurrencyManager
+local CurrencyManager = _G.CurrencyManager
 
 -- Table of all available swords
 local availableSwords = {}
@@ -125,6 +128,9 @@ end
 -- Track players currently opening crates (prevent spam)
 local playersOpening = {}
 
+-- Crate cost configuration
+local CRATE_COST = 250
+
 -- When player interacts with chest
 proximityPrompt.Triggered:Connect(function(player)
 	-- Check if player is already opening a crate
@@ -132,6 +138,23 @@ proximityPrompt.Triggered:Connect(function(player)
 		warn("[CRATE] " .. player.Name .. " tried to open crate while already opening one")
 		return
 	end
+
+	-- Check if player has enough currency
+	local balance = CurrencyManager.getCurrency(player)
+	if balance < CRATE_COST then
+		warn("[CRATE] " .. player.Name .. " doesn't have enough currency! Has: " .. balance .. " Needs: " .. CRATE_COST)
+		-- TODO: Show UI notification to player that they need more currency
+		return
+	end
+
+	-- Deduct currency BEFORE opening crate
+	local success = CurrencyManager.removeCurrency(player, CRATE_COST, "Opened Relic Crate")
+	if not success then
+		warn("[CRATE] Failed to deduct currency from " .. player.Name)
+		return
+	end
+
+	print("[CRATE] " .. player.Name .. " opened crate for " .. CRATE_COST .. " Yen")
 
 	-- Mark player as opening
 	playersOpening[player.UserId] = true
