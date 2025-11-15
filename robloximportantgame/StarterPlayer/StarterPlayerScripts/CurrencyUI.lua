@@ -25,10 +25,8 @@ local CURRENCY_SETTINGS = {
 	TopOffset = 0.35, -- 35% from top (middle-left area)
 	
 	-- Sizes
-	FrameWidth = 180,
-	FrameHeight = 60,
-	IconSize = 40,
-	IconPadding = 10,
+	FrameWidth = 150,
+	FrameHeight = 50,
 	
 	-- Corner radius
 	CornerRadius = 10,
@@ -37,20 +35,20 @@ local CURRENCY_SETTINGS = {
 -- ==================== CURRENCY DATA ====================
 
 -- This will be replaced with actual currency from server
-local currentCurrency = 1300 -- Test value (will show as "1.3K")
+local currentCurrency = 6700 -- Test value (will show as "¥ 6.7K")
 
 -- ==================== HELPER FUNCTIONS ====================
 
--- Format large numbers (e.g., 1300 -> "1.3K", 1500000 -> "1.5M")
+-- Format large numbers (e.g., 6700 -> "6.7K", 1500000 -> "1.5M")
 local function formatCurrency(amount)
 	if amount >= 1000000000 then
-		return string.format("%.1fB", amount / 1000000000)
+		return string.format("¥ %.1fB", amount / 1000000000)
 	elseif amount >= 1000000 then
-		return string.format("%.1fM", amount / 1000000)
+		return string.format("¥ %.1fM", amount / 1000000)
 	elseif amount >= 1000 then
-		return string.format("%.1fK", amount / 1000)
+		return string.format("¥ %.1fK", amount / 1000)
 	else
-		return tostring(math.floor(amount))
+		return "¥ " .. tostring(math.floor(amount))
 	end
 end
 
@@ -89,56 +87,17 @@ stroke.Transparency = 0.6
 stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 stroke.Parent = currencyFrame
 
--- Currency icon (ImageLabel)
-local currencyIcon = Instance.new("ImageLabel")
-currencyIcon.Name = "CurrencyIcon"
-currencyIcon.Size = UDim2.new(0, CURRENCY_SETTINGS.IconSize, 0, CURRENCY_SETTINGS.IconSize)
-currencyIcon.Position = UDim2.new(0, CURRENCY_SETTINGS.IconPadding, 0.5, 0)
-currencyIcon.AnchorPoint = Vector2.new(0, 0.5)
-currencyIcon.BackgroundTransparency = 1
-currencyIcon.Image = "rbxassetid://0" -- REPLACE WITH YOUR CURRENCY ICON ID
-currencyIcon.ScaleType = Enum.ScaleType.Fit
-currencyIcon.ImageColor3 = Color3.fromRGB(255, 215, 0) -- Gold color (fallback if no image)
-currencyIcon.Parent = currencyFrame
-
--- Placeholder circle if no image is set
-local iconPlaceholder = Instance.new("Frame")
-iconPlaceholder.Name = "IconPlaceholder"
-iconPlaceholder.Size = UDim2.new(1, 0, 1, 0)
-iconPlaceholder.Position = UDim2.new(0.5, 0, 0.5, 0)
-iconPlaceholder.AnchorPoint = Vector2.new(0.5, 0.5)
-iconPlaceholder.BackgroundColor3 = Color3.fromRGB(255, 215, 0) -- Gold
-iconPlaceholder.BackgroundTransparency = 0.2
-iconPlaceholder.BorderSizePixel = 0
-iconPlaceholder.Parent = currencyIcon
-
-local placeholderCorner = Instance.new("UICorner")
-placeholderCorner.CornerRadius = UDim.new(1, 0) -- Circle
-placeholderCorner.Parent = iconPlaceholder
-
--- Coin symbol in placeholder
-local coinSymbol = Instance.new("TextLabel")
-coinSymbol.Size = UDim2.new(1, 0, 1, 0)
-coinSymbol.BackgroundTransparency = 1
-coinSymbol.Font = Enum.Font.GothamBold
-coinSymbol.Text = "$"
-coinSymbol.TextColor3 = Color3.fromRGB(20, 20, 25)
-coinSymbol.TextSize = 24
-coinSymbol.TextXAlignment = Enum.TextXAlignment.Center
-coinSymbol.TextYAlignment = Enum.TextYAlignment.Center
-coinSymbol.Parent = iconPlaceholder
-
--- Currency amount text
+-- Currency text (just the text with ¥ symbol)
 local currencyText = Instance.new("TextLabel")
 currencyText.Name = "CurrencyText"
-currencyText.Size = UDim2.new(1, -(CURRENCY_SETTINGS.IconSize + CURRENCY_SETTINGS.IconPadding * 2 + 5), 1, 0)
-currencyText.Position = UDim2.new(0, CURRENCY_SETTINGS.IconSize + CURRENCY_SETTINGS.IconPadding + 5, 0, 0)
+currencyText.Size = UDim2.new(1, -20, 1, 0) -- Padding of 10px on each side
+currencyText.Position = UDim2.new(0, 10, 0, 0)
 currencyText.BackgroundTransparency = 1
 currencyText.Font = Enum.Font.GothamBold
 currencyText.Text = formatCurrency(currentCurrency)
 currencyText.TextColor3 = CURRENCY_SETTINGS.TextColor
-currencyText.TextSize = 22
-currencyText.TextXAlignment = Enum.TextXAlignment.Left
+currencyText.TextSize = 20
+currencyText.TextXAlignment = Enum.TextXAlignment.Center
 currencyText.TextYAlignment = Enum.TextYAlignment.Center
 currencyText.TextTruncate = Enum.TextTruncate.AtEnd
 currencyText.Parent = currencyFrame
@@ -179,13 +138,13 @@ local function updateCurrency(newAmount)
 		local pulseTween = TweenService:Create(
 			currencyText,
 			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{TextSize = 26}
+			{TextSize = 24}
 		)
 		
 		local resetTween = TweenService:Create(
 			currencyText,
 			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-			{TextSize = 22}
+			{TextSize = 20}
 		)
 		
 		pulseTween:Play()
@@ -213,7 +172,7 @@ task.spawn(function()
 	task.wait(3)
 	
 	-- Simulate currency changes for testing
-	local testValues = {1300, 5600, 12800, 156000, 1200000, 1300}
+	local testValues = {6700, 12500, 156000, 1200000, 6700}
 	
 	for _, value in ipairs(testValues) do
 		task.wait(2)
@@ -222,11 +181,10 @@ task.spawn(function()
 	
 	-- Reset to initial test value
 	task.wait(2)
-	updateCurrency(1300)
+	updateCurrency(6700)
 end)
 
 print("========================================")
 print("Currency UI Ready!")
 print("Current currency:", formatCurrency(currentCurrency))
-print("Replace 'rbxassetid://0' with your currency icon!")
 print("========================================")
