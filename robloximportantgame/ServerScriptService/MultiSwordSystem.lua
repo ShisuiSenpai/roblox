@@ -417,12 +417,33 @@ local function equipSword(character, swordName, config)
 	-- Clone and parent to character
 	local equippedSword = toolTemplate:Clone()
 	equippedSword.Name = "EquippedSword"
+	
+	-- IMPORTANT: Make server-side sword invisible to prevent visual glitches
+	-- Other players will see the client-side animation instead
+	-- This prevents the "sword cloning in wrong position" bug
+	for _, descendant in ipairs(equippedSword:GetDescendants()) do
+		if descendant:IsA("BasePart") then
+			descendant.Transparency = 1
+			-- Disable collision for server-side sword
+			descendant.CanCollide = false
+			descendant.CanTouch = false
+			descendant.CanQuery = false
+		elseif descendant:IsA("ParticleEmitter") or descendant:IsA("Trail") or descendant:IsA("Beam") then
+			-- Disable any VFX on server-side sword
+			descendant.Enabled = false
+		elseif descendant:IsA("Light") then
+			descendant.Enabled = false
+		elseif descendant:IsA("Sound") then
+			descendant.Volume = 0
+		end
+	end
+	
 	equippedSword.Parent = character
 
 	-- Find humanoid
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		-- Equip the tool (attaches to hand)
+		-- Equip the tool (attaches to hand) - invisible but exists for hitbox detection
 		humanoid:EquipTool(equippedSword)
 	end
 
