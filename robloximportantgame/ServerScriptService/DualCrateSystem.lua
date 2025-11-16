@@ -496,7 +496,13 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
-print("[DUAL CRATE] ProcessReceipt handler installed for ProductId:", CRATE_CONFIG.Premium.ProductId)
+print("[DUAL CRATE] ========================================")
+print("[DUAL CRATE] ProcessReceipt handler INSTALLED")
+print("[DUAL CRATE] Listening for ProductId:", CRATE_CONFIG.Premium.ProductId)
+print("[DUAL CRATE] When a purchase completes, you should see:")
+print("[DUAL CRATE]   'ProcessReceipt called! ProductId: X PlayerId: Y'")
+print("[DUAL CRATE] If you DON'T see that message, ProcessReceipt is NOT firing!")
+print("[DUAL CRATE] ========================================")
 
 -- ========================================
 -- PROXIMITY PROMPT HANDLERS
@@ -546,9 +552,6 @@ else
 	print("[DUAL CRATE] ✅ Premium Crate configured with ProductId:", CRATE_CONFIG.Premium.ProductId)
 end
 
--- Verify ProcessReceipt is still ours (in case another script overrides it)
-task.delay(2, function()
-	if not MarketplaceService.ProcessReceipt then
-		warn("⚠️ [DUAL CRATE] ProcessReceipt handler was removed! Another script may have overridden it!")
-	end
-end)
+-- Note: ProcessReceipt is write-only, we cannot verify if it's overridden
+-- Make sure NO other script in your game sets ProcessReceipt!
+print("[DUAL CRATE] ⚠️ WARNING: If you have other Developer Products, you MUST merge them into this ProcessReceipt handler!")
