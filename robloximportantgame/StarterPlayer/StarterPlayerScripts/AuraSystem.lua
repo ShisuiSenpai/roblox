@@ -51,6 +51,15 @@ local lastCheckedSword = nil
 -- HELPER FUNCTIONS
 -- ========================================
 
+-- Helper to get children names for debugging
+local function getChildrenNames(parent)
+	local names = {}
+	for _, child in ipairs(parent:GetChildren()) do
+		table.insert(names, child.Name)
+	end
+	return names
+end
+
 -- Function to get the VFX model from ReplicatedStorage
 local function getVFXModel(vfxName)
 	print("[AURA SYSTEM] Looking for VFX model:", vfxName)
@@ -81,15 +90,6 @@ local function getVFXModel(vfxName)
 	print("[AURA SYSTEM] ✓ VFX model has", #vfxModel:GetChildren(), "children")
 	
 	return vfxModel
-end
-
--- Helper to get children names for debugging
-local function getChildrenNames(parent)
-	local names = {}
-	for _, child in ipairs(parent:GetChildren()) do
-		table.insert(names, child.Name)
-	end
-	return names
 end
 
 -- Function to find matching body part in character
