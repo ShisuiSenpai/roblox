@@ -114,71 +114,103 @@ local function findMatchingBodyPart(character, vfxPartName)
 	return nil
 end
 
--- Function to clone VFX from source part to target part
-local function cloneVFXToBodyPart(sourcePart, targetPart, scale)
+-- Recursive function to process and store original transparency values
+local function processEffectTransparency(effect, scale)
+	if effect:IsA("ParticleEmitter") then
+		-- Store original transparency
+		effect:SetAttribute("OriginalTransparency", effect.Transparency)
+		
+		-- Apply scale to particle size
+		if scale ~= 1.0 then
+			local keypoints = effect.Size.Keypoints
+			local scaledKeypoints = {}
+			for i, keypoint in ipairs(keypoints) do
+				table.insert(scaledKeypoints, NumberSequenceKeypoint.new(
+					keypoint.Time,
+					keypoint.Value * scale,
+					keypoint.Envelope * scale
+				))
+			end
+			effect.Size = NumberSequence.new(scaledKeypoints)
+		end
+		
+		-- Start fully transparent for fade-in
+		effect.Transparency = NumberSequence.new(1)
+		
+	elseif effect:IsA("Beam") then
+		-- Store original transparency
+		effect:SetAttribute("OriginalTransparency", effect.Transparency)
+		
+		-- Start fully transparent for fade-in
+		effect.Transparency = NumberSequence.new(1)
+	end
+end
+
+-- Function to recursively clone ALL VFX from source part to target part
+local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 	local clonedObjects = {}
 	
-	-- Clone attachments with their ParticleEmitters
-	for _, child in ipairs(sourcePart:GetChildren()) do
-		if child:IsA("Attachment") then
-			local attachmentClone = child:Clone()
-			attachmentClone.Parent = targetPart
-			table.insert(clonedObjects, attachmentClone)
-			
-			-- Set initial transparency for fade-in
-			for _, emitter in ipairs(attachmentClone:GetDescendants()) do
-				if emitter:IsA("ParticleEmitter") then
-					-- Store original transparency
-					emitter:SetAttribute("OriginalTransparency", emitter.Transparency)
-					
-					-- Apply scale
-					if scale ~= 1.0 then
-						emitter.Size = NumberSequence.new(
-							emitter.Size.Keypoints[1].Value * scale,
-							emitter.Size.Keypoints[#emitter.Size.Keypoints].Value * scale
-						)
-					end
-					
-					-- Start fully transparent
-					emitter.Transparency = NumberSequence.new(1)
+	print("[AURA SYSTEM] Cloning VFX from", sourcePart.Name, "to", targetPart.Name)
+	
+	-- Go through ALL descendants recursively
+	for _, descendant in ipairs(sourcePart:GetDescendants()) do
+		local clonedObject = nil
+		
+		-- Clone Attachments (with all their children)
+		if descendant:IsA("Attachment") then
+			-- Only clone if it's a direct child of the source part
+			-- (nested attachments will be cloned with their parent)
+			if descendant.Parent == sourcePart then
+				clonedObject = descendant:Clone()
+				clonedObject.Parent = targetPart
+				
+				print("[AURA SYSTEM]   → Cloned Attachment:", descendant.Name)
+				
+				-- Process all effects inside this attachment
+				for _, effect in ipairs(clonedObject:GetDescendants()) do
+					processEffectTransparency(effect, scale)
 				end
-			end
-		end
-		
-		-- Clone ParticleEmitters directly in the part
-		if child:IsA("ParticleEmitter") then
-			local emitterClone = child:Clone()
-			emitterClone.Parent = targetPart
-			table.insert(clonedObjects, emitterClone)
-			
-			-- Store original transparency
-			emitterClone:SetAttribute("OriginalTransparency", emitterClone.Transparency)
-			
-			-- Apply scale
-			if scale ~= 1.0 then
-				emitterClone.Size = NumberSequence.new(
-					emitterClone.Size.Keypoints[1].Value * scale,
-					emitterClone.Size.Keypoints[#emitterClone.Size.Keypoints].Value * scale
-				)
+				
+				table.insert(clonedObjects, clonedObject)
 			end
 			
-			-- Start fully transparent
-			emitterClone.Transparency = NumberSequence.new(1)
-		end
-		
+		-- Clone ParticleEmitters (direct children only, as nested ones come with attachments)
+		elseif descendant:IsA("ParticleEmitter") then
+			if descendant.Parent == sourcePart then
+				clonedObject = descendant:Clone()
+				clonedObject.Parent = targetPart
+				
+				print("[AURA SYSTEM]   → Cloned ParticleEmitter:", descendant.Name)
+				
+				processEffectTransparency(clonedObject, scale)
+				table.insert(clonedObjects, clonedObject)
+			end
+			
 		-- Clone Beams
-		if child:IsA("Beam") then
-			local beamClone = child:Clone()
-			beamClone.Parent = targetPart
-			table.insert(clonedObjects, beamClone)
+		elseif descendant:IsA("Beam") then
+			if descendant.Parent == sourcePart then
+				clonedObject = descendant:Clone()
+				clonedObject.Parent = targetPart
+				
+				print("[AURA SYSTEM]   → Cloned Beam:", descendant.Name)
+				
+				processEffectTransparency(clonedObject, scale)
+				table.insert(clonedObjects, clonedObject)
+			end
 			
-			-- Store original transparency
-			beamClone:SetAttribute("OriginalTransparency", beamClone.Transparency)
-			
-			-- Start fully transparent
-			beamClone.Transparency = NumberSequence.new(1)
+		-- Clone PointLights, SpotLights, SurfaceLights
+		elseif descendant:IsA("Light") then
+			if descendant.Parent == sourcePart then
+				clonedObject = descendant:Clone()
+				clonedObject.Parent = targetPart
+				
+				print("[AURA SYSTEM]   → Cloned Light:", descendant.Name)
+				table.insert(clonedObjects, clonedObject)
+			end
 		end
 	end
+	
+	print("[AURA SYSTEM]   ✅ Cloned", #clonedObjects, "objects")
 	
 	return clonedObjects
 end
@@ -193,15 +225,22 @@ local function fadeInAura(duration)
 	
 	if not auraFolder then return end
 	
-	-- Collect all emitters and beams
+	-- Collect all emitters and beams from character
 	local effects = {}
-	for _, descendant in ipairs(auraFolder:GetDescendants()) do
-		if descendant:IsA("ParticleEmitter") or descendant:IsA("Beam") then
-			table.insert(effects, descendant)
+	for _, bodyPart in ipairs(character:GetChildren()) do
+		if bodyPart:IsA("BasePart") then
+			for _, descendant in ipairs(bodyPart:GetDescendants()) do
+				if (descendant:IsA("ParticleEmitter") or descendant:IsA("Beam")) and 
+				   descendant:GetAttribute("OriginalTransparency") then
+					table.insert(effects, descendant)
+				end
+			end
 		end
 	end
 	
-	-- Fade in
+	print("[AURA SYSTEM] Found", #effects, "effects to fade in")
+	
+	-- Fade in each effect
 	for _, effect in ipairs(effects) do
 		local originalTransparency = effect:GetAttribute("OriginalTransparency")
 		if originalTransparency then
@@ -234,11 +273,16 @@ local function fadeOutAura(duration)
 	
 	if not auraFolder then return end
 	
-	-- Collect all emitters and beams
+	-- Collect all emitters and beams from character
 	local effects = {}
-	for _, descendant in ipairs(auraFolder:GetDescendants()) do
-		if descendant:IsA("ParticleEmitter") or descendant:IsA("Beam") then
-			table.insert(effects, descendant)
+	for _, bodyPart in ipairs(character:GetChildren()) do
+		if bodyPart:IsA("BasePart") then
+			for _, descendant in ipairs(bodyPart:GetDescendants()) do
+				if (descendant:IsA("ParticleEmitter") or descendant:IsA("Beam")) and 
+				   descendant:GetAttribute("OriginalTransparency") then
+					table.insert(effects, descendant)
+				end
+			end
 		end
 	end
 	
@@ -289,6 +333,7 @@ local function applyAura(swordName)
 		removeAura()
 	end
 	
+	print("[AURA SYSTEM] ========================================")
 	print("[AURA SYSTEM] Applying aura for sword:", swordName)
 	
 	-- Get VFX model
@@ -298,52 +343,64 @@ local function applyAura(swordName)
 		return
 	end
 	
-	-- Create folder to hold all aura effects
+	print("[AURA SYSTEM] Found VFX model:", vfxModel.Name)
+	print("[AURA SYSTEM] VFX model has", #vfxModel:GetChildren(), "children")
+	
+	-- Create folder to hold references to all aura effects
 	auraFolder = Instance.new("Folder")
 	auraFolder.Name = "AuraEffects_" .. swordName
 	auraFolder.Parent = character
 	
-	-- Apply VFX to each matching body part
-	local effectsApplied = 0
+	-- Apply VFX from each body part in the VFX model to the matching character body part
+	local totalEffectsApplied = 0
+	local bodyPartsProcessed = 0
+	
 	for _, sourcePart in ipairs(vfxModel:GetChildren()) do
 		if sourcePart:IsA("BasePart") then
+			bodyPartsProcessed = bodyPartsProcessed + 1
+			print("[AURA SYSTEM] Processing VFX body part:", sourcePart.Name)
+			
 			local targetPart = findMatchingBodyPart(character, sourcePart.Name)
 			if targetPart then
-				local clonedObjects = cloneVFXToBodyPart(sourcePart, targetPart, auraConfig.Scale)
+				print("[AURA SYSTEM] Matched to character part:", targetPart.Name)
 				
-				-- Parent cloned objects to aura folder for easy cleanup
+				-- Clone ALL VFX from this source part to the target part
+				local clonedObjects = cloneAllVFXToBodyPart(sourcePart, targetPart, auraConfig.Scale)
+				
+				-- Track these objects in aura folder
 				for _, obj in ipairs(clonedObjects) do
-					obj.Parent = auraFolder
-					-- But keep the visual parent as the body part
-					if obj:IsA("Attachment") then
-						obj.Parent = targetPart
-					elseif obj:IsA("ParticleEmitter") or obj:IsA("Beam") then
-						obj.Parent = targetPart
-					end
+					-- Create a reference object to track this for cleanup
+					local ref = Instance.new("ObjectValue")
+					ref.Name = "VFXRef_" .. obj.Name
+					ref.Value = obj
+					ref.Parent = auraFolder
 				end
 				
-				effectsApplied = effectsApplied + #clonedObjects
+				totalEffectsApplied = totalEffectsApplied + #clonedObjects
 			else
 				warn("[AURA SYSTEM] Could not find matching body part for:", sourcePart.Name)
 			end
 		end
 	end
 	
-	if effectsApplied > 0 then
+	print("[AURA SYSTEM] Processed", bodyPartsProcessed, "body parts")
+	print("[AURA SYSTEM] ========================================")
+	
+	if totalEffectsApplied > 0 then
 		currentAura = swordName
 		currentSword = swordName
 		
 		-- Fade in the aura
 		fadeInAura(auraConfig.FadeInDuration)
 		
-		print("[AURA SYSTEM] ✅ Applied", effectsApplied, "effects to character")
+		print("[AURA SYSTEM] ✅ Successfully applied", totalEffectsApplied, "effects to character!")
 	else
 		-- No effects applied, clean up
 		if auraFolder then
 			auraFolder:Destroy()
 			auraFolder = nil
 		end
-		warn("[AURA SYSTEM] No effects were applied!")
+		warn("[AURA SYSTEM] ❌ No effects were applied! Check your VFX model structure.")
 	end
 end
 
@@ -351,7 +408,7 @@ end
 function removeAura()
 	if not auraFolder then return end
 	
-	print("[AURA SYSTEM] Removing aura")
+	print("[AURA SYSTEM] Removing aura...")
 	
 	-- Cancel any active tweens
 	for _, tween in ipairs(activeTweens) do
@@ -359,7 +416,14 @@ function removeAura()
 	end
 	activeTweens = {}
 	
-	-- Destroy aura folder and all effects
+	-- Destroy all tracked VFX objects
+	for _, ref in ipairs(auraFolder:GetChildren()) do
+		if ref:IsA("ObjectValue") and ref.Value then
+			ref.Value:Destroy()
+		end
+	end
+	
+	-- Destroy aura folder
 	auraFolder:Destroy()
 	auraFolder = nil
 	currentAura = nil
