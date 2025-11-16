@@ -210,8 +210,16 @@ local function chooseRandomSword(crateType)
 	
 	print("[DUAL CRATE] Selected rarity:", selectedRarity, "from", crateType, "crate (Roll:", string.format("%.2f", roll), "/ Total:", totalWeight, ")")
 	
-	-- Get sword by rarity
-	local swordsByRarity = _G.InventoryManager.getSwordsByRarity(selectedRarity)
+	-- Get swords by rarity from SwordConfig
+	local swordsByRarity = {}
+	for swordName, swordData in pairs(SwordConfig.Swords) do
+		if swordData.Rarity == selectedRarity then
+			table.insert(swordsByRarity, {
+				SwordName = swordName,
+				Rarity = swordData.Rarity
+			})
+		end
+	end
 	
 	if #swordsByRarity == 0 then
 		warn("[DUAL CRATE] No swords found for rarity:", selectedRarity)
