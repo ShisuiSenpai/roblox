@@ -22,16 +22,9 @@ local CRATE_CONFIG = {
 	},
 	Premium = {
 		Cost = 99, -- Robux price
-		ProductId = 0, -- ⚠️ USER MUST SET THIS! Create a Developer Product
+		ProductId = 0, -- ⚠️ SET THIS! Must match UnifiedProcessReceipt.lua!
 		CostType = "Robux", -- Uses Robux via Developer Product
 		ProximityText = "Premium Relic ✨ 2x LUCK | 99 R$",
-		UseStandardRarities = false, -- Premium uses ONLY high-tier drops
-		PremiumRarities = {
-			-- Only Legendary, Godly, and ???
-			{name = "Legendary", weight = 55}, -- 55%
-			{name = "Godly", weight = 40},     -- 40%
-			{name = "???", weight = 5},        -- 5%
-		},
 	},
 }
 
@@ -337,171 +330,38 @@ end
 -- ========================================
 
 local function openPremiumCrate(player)
-	-- Prevent spam
-	if playersOpening[player.UserId] then
-		warn("[DUAL CRATE]", player.Name, "is already opening a crate!")
-		return
-	end
-	
-	-- Check if there's a pending purchase and if it's stale (older than 10 seconds)
-	if pendingPurchases[player.UserId] then
-		local timeSincePending = tick() - pendingPurchases[player.UserId]
-		if timeSincePending < 10 then
-			warn("[DUAL CRATE]", player.Name, "has a pending purchase (wait", math.ceil(10 - timeSincePending), "seconds)")
-			return
-		else
-			-- Stale purchase, clear it
-			print("[DUAL CRATE] Clearing stale purchase for", player.Name)
-			pendingPurchases[player.UserId] = nil
-		end
-	end
-	
 	-- Check if ProductId is configured
 	if CRATE_CONFIG.Premium.ProductId == 0 then
-		warn("[DUAL CRATE] Premium Crate ProductId not configured! Please set it in DualCrateSystem.lua")
+		warn("[DUAL CRATE] Premium Crate ProductId not configured!")
+		warn("[DUAL CRATE] Set it in BOTH DualCrateSystem.lua AND UnifiedProcessReceipt.lua!")
 		return
 	end
 	
-	-- Mark as pending purchase with timestamp
-	pendingPurchases[player.UserId] = tick()
 	print("[DUAL CRATE]", player.Name, "initiating PREMIUM crate purchase for", CRATE_CONFIG.Premium.Cost, "Robux")
+	print("[DUAL CRATE] Purchase will be processed by UnifiedProcessReceipt.lua")
 	
-	-- Prompt Robux purchase
+	-- Prompt Robux purchase - UnifiedProcessReceipt will handle the receipt!
 	local success, errorMsg = pcall(function()
 		MarketplaceService:PromptProductPurchase(player, CRATE_CONFIG.Premium.ProductId)
 	end)
 	
 	if not success then
 		warn("[DUAL CRATE] Failed to prompt purchase for", player.Name, ":", errorMsg)
-		pendingPurchases[player.UserId] = nil
-		return
 	end
-	
-	-- Auto-clear pending purchase after 15 seconds (user cancelled or closed prompt)
-	task.delay(15, function()
-		if pendingPurchases[player.UserId] then
-			print("[DUAL CRATE] Auto-clearing pending purchase for", player.Name, "(likely cancelled)")
-			pendingPurchases[player.UserId] = nil
-		end
-	end)
 end
 
 -- ========================================
--- ROBUX PURCHASE RECEIPT (MarketplaceService)
+-- NOTE: PROCESSRECEIPT HANDLED BY UnifiedProcessReceipt.lua
 -- ========================================
 
--- IMPORTANT: This sets the GLOBAL ProcessReceipt handler
--- If you have other Developer Products, you need to handle them here too
-MarketplaceService.ProcessReceipt = function(receiptInfo)
-	print("[DUAL CRATE] ProcessReceipt called! ProductId:", receiptInfo.ProductId, "PlayerId:", receiptInfo.PlayerId)
-	
-	local userId = receiptInfo.PlayerId
-	local productId = receiptInfo.ProductId
-	
-	-- Check if it's our Premium Crate product
-	if productId ~= CRATE_CONFIG.Premium.ProductId then
-		warn("[DUAL CRATE] Not our product. Expected:", CRATE_CONFIG.Premium.ProductId, "Got:", productId)
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-	
-	print("[DUAL CRATE] ✅ Processing Premium Crate purchase for UserId:", userId)
-	
-	local player = Players:GetPlayerByUserId(userId)
-	
-	-- Clear pending purchase
-	if pendingPurchases[userId] then
-		pendingPurchases[userId] = nil
-		print("[DUAL CRATE] Cleared pending purchase for", userId)
-	end
-	
-	-- If player left, still grant the purchase (avoid refund)
-	if not player then
-		warn("[DUAL CRATE] Player left before purchase completed. Granting anyway to avoid refund.")
-		-- TODO: Could save pending reward in DataStore for next join
-		return Enum.ProductPurchaseDecision.PurchaseGranted
-	end
-	
-	-- Process in a separate thread so we don't block the receipt handler
-	task.spawn(function()
-		local success, errorMsg = pcall(function()
-			-- Mark as opening
-			playersOpening[userId] = true
-			print("[DUAL CRATE] Player", player.Name, "marked as opening crate")
-			
-			-- Choose random sword (Premium odds - better!)
-			local chosenSword = chooseRandomSword("Premium")
-			if not chosenSword then
-				error("Failed to choose sword")
-			end
-			
-			print("[DUAL CRATE] Chosen sword:", chosenSword.SwordName, "for", player.Name)
-			
-			-- Get all sword names for animation
-			local allSwordNames = {}
-			for swordName, _ in pairs(SwordConfig.Swords) do
-				table.insert(allSwordNames, swordName)
-			end
-			
-			print("[DUAL CRATE] Firing animation event to client for", player.Name)
-			
-			-- Trigger client-side animation
-			if openCrateEvent then
-				openCrateEvent:FireClient(player, chosenSword.SwordName, allSwordNames)
-				print("[DUAL CRATE] ✅ Animation event fired to", player.Name)
-			else
-				warn("[DUAL CRATE] OpenCrate event is nil!")
-			end
-			
-			-- Wait for animation (client animation is 5 seconds + extras)
-			print("[DUAL CRATE] Waiting 7 seconds for animation to complete...")
-			task.wait(7)
-			
-			-- Check if player still exists
-			if not player or not player.Parent then
-				warn("[DUAL CRATE] Player left during animation")
-				return
-			end
-			
-			-- Award sword
-			print("[DUAL CRATE] Awarding sword to", player.Name)
-			
-			-- Check if InventoryManager exists and has AddSword function
-			if not _G.InventoryManager then
-				error("InventoryManager not found!")
-			end
-			
-			if not _G.InventoryManager.AddSword then
-				error("InventoryManager.AddSword function not found!")
-			end
-			
-			local addSuccess = _G.InventoryManager.AddSword(player, chosenSword.SwordName)
-			if addSuccess then
-				print("[DUAL CRATE] ✅", player.Name, "received (PREMIUM):", chosenSword.SwordName)
-			else
-				warn("[DUAL CRATE] AddSword returned false for", player.Name)
-			end
-		end)
-		
-		if not success then
-			warn("[DUAL CRATE] ERROR in premium crate processing:", errorMsg)
-		end
-		
-		-- ALWAYS unlock, even if there was an error
-		playersOpening[userId] = nil
-		print("[DUAL CRATE] Player", player and player.Name or userId, "unmarked from opening")
-	end)
-	
-	-- Return immediately to not block Roblox's purchase system
-	print("[DUAL CRATE] Returning PurchaseGranted immediately")
-	return Enum.ProductPurchaseDecision.PurchaseGranted
-end
+-- ProcessReceipt is now handled by UnifiedProcessReceipt.lua
+-- That script integrates with the donation board's processor system
+-- So BOTH donation board AND premium crates work together!
 
 print("[DUAL CRATE] ========================================")
-print("[DUAL CRATE] ProcessReceipt handler INSTALLED")
-print("[DUAL CRATE] Listening for ProductId:", CRATE_CONFIG.Premium.ProductId)
-print("[DUAL CRATE] When a purchase completes, you should see:")
-print("[DUAL CRATE]   'ProcessReceipt called! ProductId: X PlayerId: Y'")
-print("[DUAL CRATE] If you DON'T see that message, ProcessReceipt is NOT firing!")
+print("[DUAL CRATE] ProcessReceipt is handled by UnifiedProcessReceipt.lua")
+print("[DUAL CRATE] This allows BOTH donation board AND premium crates to work!")
+print("[DUAL CRATE] Make sure UnifiedProcessReceipt.lua is in ServerScriptService!")
 print("[DUAL CRATE] ========================================")
 
 -- ========================================
@@ -543,15 +403,18 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 print("[DUAL CRATE] System ready! ✅")
-print("[DUAL CRATE] Regular Crate: ¥" .. CRATE_CONFIG.Regular.Cost .. " | Premium Crate: " .. CRATE_CONFIG.Premium.Cost .. " R$")
+print("[DUAL CRATE] Regular Crate: ¥" .. CRATE_CONFIG.Regular.Cost)
+print("[DUAL CRATE] Premium Crate: Handled by UnifiedProcessReceipt.lua")
 
 if CRATE_CONFIG.Premium.ProductId == 0 then
-	warn("⚠️ [DUAL CRATE] Premium Crate ProductId not set! Create a Developer Product and paste the ID on line ~26")
-	warn("⚠️ [DUAL CRATE] Premium crate purchases will NOT work until ProductId is configured!")
+	warn("⚠️ [DUAL CRATE] Premium Crate ProductId not set!")
+	warn("⚠️ [DUAL CRATE] Set it in BOTH DualCrateSystem.lua (line ~25) AND UnifiedProcessReceipt.lua (line ~48)!")
 else
-	print("[DUAL CRATE] ✅ Premium Crate configured with ProductId:", CRATE_CONFIG.Premium.ProductId)
+	print("[DUAL CRATE] ✅ Premium Crate ProductId:", CRATE_CONFIG.Premium.ProductId)
+	print("[DUAL CRATE] ✅ Make sure this matches UnifiedProcessReceipt.lua!")
 end
 
--- Note: ProcessReceipt is write-only, we cannot verify if it's overridden
--- Make sure NO other script in your game sets ProcessReceipt!
-print("[DUAL CRATE] ⚠️ WARNING: If you have other Developer Products, you MUST merge them into this ProcessReceipt handler!")
+print("[DUAL CRATE] ========================================")
+print("[DUAL CRATE] ⚠️ IMPORTANT: ProcessReceipt is in UnifiedProcessReceipt.lua")
+print("[DUAL CRATE] This allows donation board AND premium crates to work together!")
+print("[DUAL CRATE] ========================================")
