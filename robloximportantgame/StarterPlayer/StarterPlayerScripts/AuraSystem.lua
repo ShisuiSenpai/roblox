@@ -21,7 +21,7 @@ print("[AURA SYSTEM] ========================================")
 
 local AURA_CONFIG = {
 	-- Sword name → VFX model name mapping
-	["DawnStar"] = {
+	["Dawnstar"] = {  -- Fixed: Sword is named "Dawnstar" not "DawnStar"
 		VFXModel = "DawnstarVFX", -- Name of the VFX rig in ReplicatedStorage.Assets.AuraVFX
 		FadeInDuration = 0.8, -- How long to fade in (seconds)
 		FadeOutDuration = 0.5, -- How long to fade out (seconds)
@@ -136,11 +136,12 @@ local function findMatchingBodyPart(character, vfxPartName)
 	return nil
 end
 
--- Recursive function to process and store original transparency values
-local function processEffectTransparency(effect, scale)
+-- Recursive function to process effects and prepare for fade-in
+local function processEffect(effect, scale)
 	if effect:IsA("ParticleEmitter") then
-		-- Store original transparency
-		effect:SetAttribute("OriginalTransparency", effect.Transparency)
+		-- Store original enabled state and rate
+		effect:SetAttribute("OriginalEnabled", effect.Enabled)
+		effect:SetAttribute("OriginalRate", effect.Rate)
 		
 		-- Apply scale to particle size
 		if scale ~= 1.0 then
@@ -156,15 +157,23 @@ local function processEffectTransparency(effect, scale)
 			effect.Size = NumberSequence.new(scaledKeypoints)
 		end
 		
-		-- Start fully transparent for fade-in
-		effect.Transparency = NumberSequence.new(1)
+		-- Start disabled for fade-in effect
+		effect.Rate = 0
+		effect.Enabled = true -- Keep enabled but with 0 rate
 		
 	elseif effect:IsA("Beam") then
-		-- Store original transparency
-		effect:SetAttribute("OriginalTransparency", effect.Transparency)
+		-- Store original enabled state
+		effect:SetAttribute("OriginalEnabled", effect.Enabled)
 		
-		-- Start fully transparent for fade-in
-		effect.Transparency = NumberSequence.new(1)
+		-- Start disabled
+		effect.Enabled = false
+		
+	elseif effect:IsA("Light") then
+		-- Store original brightness
+		effect:SetAttribute("OriginalBrightness", effect.Brightness)
+		
+		-- Start at 0 brightness
+		effect.Brightness = 0
 	end
 end
 
@@ -191,9 +200,9 @@ local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 				
 				-- Process all effects inside this attachment
 				for _, effect in ipairs(clonedObject:GetDescendants()) do
-					if effect:IsA("ParticleEmitter") or effect:IsA("Beam") then
+					if effect:IsA("ParticleEmitter") or effect:IsA("Beam") or effect:IsA("Light") then
 						print("[AURA SYSTEM]       → Processing", effect.ClassName, "inside attachment")
-						processEffectTransparency(effect, scale)
+						processEffect(effect, scale)
 					end
 				end
 				
@@ -208,7 +217,7 @@ local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 				
 				print("[AURA SYSTEM]     → Cloned ParticleEmitter:", descendant.Name)
 				
-				processEffectTransparency(clonedObject, scale)
+				processEffect(clonedObject, scale)
 				table.insert(clonedObjects, clonedObject)
 			end
 			
@@ -220,7 +229,7 @@ local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 				
 				print("[AURA SYSTEM]     → Cloned Beam:", descendant.Name)
 				
-				processEffectTransparency(clonedObject, scale)
+				processEffect(clonedObject, scale)
 				table.insert(clonedObjects, clonedObject)
 			end
 			
@@ -231,6 +240,8 @@ local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 				clonedObject.Parent = targetPart
 				
 				print("[AURA SYSTEM]     → Cloned Light:", descendant.Name)
+				
+				processEffect(clonedObject, scale)
 				table.insert(clonedObjects, clonedObject)
 			end
 		end
@@ -251,34 +262,63 @@ local function fadeInAura(duration)
 	
 	if not auraFolder then return end
 	
-	-- Collect all emitters and beams from character
-	local effects = {}
+	-- Collect all effects from character
+	local particleEmitters = {}
+	local beams = {}
+	local lights = {}
+	
 	for _, bodyPart in ipairs(character:GetChildren()) do
 		if bodyPart:IsA("BasePart") then
 			for _, descendant in ipairs(bodyPart:GetDescendants()) do
-				if (descendant:IsA("ParticleEmitter") or descendant:IsA("Beam")) and 
-				   descendant:GetAttribute("OriginalTransparency") then
-					table.insert(effects, descendant)
+				if descendant:IsA("ParticleEmitter") and descendant:GetAttribute("OriginalRate") then
+					table.insert(particleEmitters, descendant)
+				elseif descendant:IsA("Beam") and descendant:GetAttribute("OriginalEnabled") then
+					table.insert(beams, descendant)
+				elseif descendant:IsA("Light") and descendant:GetAttribute("OriginalBrightness") then
+					table.insert(lights, descendant)
 				end
 			end
 		end
 	end
 	
-	print("[AURA SYSTEM] Found", #effects, "effects to fade in")
+	print("[AURA SYSTEM] Found", #particleEmitters, "particle emitters,", #beams, "beams,", #lights, "lights to fade in")
 	
-	-- Fade in each effect
-	for _, effect in ipairs(effects) do
-		local originalTransparency = effect:GetAttribute("OriginalTransparency")
-		if originalTransparency then
-			-- Create tween
+	-- Fade in ParticleEmitters by tweening Rate
+	for _, emitter in ipairs(particleEmitters) do
+		local originalRate = emitter:GetAttribute("OriginalRate")
+		if originalRate then
 			local tweenInfo = TweenInfo.new(
 				duration,
 				Enum.EasingStyle.Quad,
 				Enum.EasingDirection.Out
 			)
 			
-			local tween = TweenService:Create(effect, tweenInfo, {
-				Transparency = originalTransparency
+			local tween = TweenService:Create(emitter, tweenInfo, {
+				Rate = originalRate
+			})
+			
+			table.insert(activeTweens, tween)
+			tween:Play()
+		end
+	end
+	
+	-- Enable Beams (instant, no tween)
+	for _, beam in ipairs(beams) do
+		beam.Enabled = true
+	end
+	
+	-- Fade in Lights by tweening Brightness
+	for _, light in ipairs(lights) do
+		local originalBrightness = light:GetAttribute("OriginalBrightness")
+		if originalBrightness then
+			local tweenInfo = TweenInfo.new(
+				duration,
+				Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out
+			)
+			
+			local tween = TweenService:Create(light, tweenInfo, {
+				Brightness = originalBrightness
 			})
 			
 			table.insert(activeTweens, tween)
@@ -299,30 +339,40 @@ local function fadeOutAura(duration)
 	
 	if not auraFolder then return end
 	
-	-- Collect all emitters and beams from character
-	local effects = {}
+	-- Collect all effects from character
+	local particleEmitters = {}
+	local beams = {}
+	local lights = {}
+	
 	for _, bodyPart in ipairs(character:GetChildren()) do
 		if bodyPart:IsA("BasePart") then
 			for _, descendant in ipairs(bodyPart:GetDescendants()) do
-				if (descendant:IsA("ParticleEmitter") or descendant:IsA("Beam")) and 
-				   descendant:GetAttribute("OriginalTransparency") then
-					table.insert(effects, descendant)
+				if descendant:IsA("ParticleEmitter") and descendant:GetAttribute("OriginalRate") then
+					table.insert(particleEmitters, descendant)
+				elseif descendant:IsA("Beam") and descendant:GetAttribute("OriginalEnabled") then
+					table.insert(beams, descendant)
+				elseif descendant:IsA("Light") and descendant:GetAttribute("OriginalBrightness") then
+					table.insert(lights, descendant)
 				end
 			end
 		end
 	end
 	
-	-- Fade out
+	print("[AURA SYSTEM] Fading out", #particleEmitters, "particle emitters,", #beams, "beams,", #lights, "lights")
+	
+	local totalTweens = #particleEmitters + #lights
 	local completedCount = 0
-	for _, effect in ipairs(effects) do
+	
+	-- Fade out ParticleEmitters by tweening Rate to 0
+	for _, emitter in ipairs(particleEmitters) do
 		local tweenInfo = TweenInfo.new(
 			duration,
 			Enum.EasingStyle.Quad,
 			Enum.EasingDirection.In
 		)
 		
-		local tween = TweenService:Create(effect, tweenInfo, {
-			Transparency = NumberSequence.new(1)
+		local tween = TweenService:Create(emitter, tweenInfo, {
+			Rate = 0
 		})
 		
 		table.insert(activeTweens, tween)
@@ -330,13 +380,51 @@ local function fadeOutAura(duration)
 		-- Track completion
 		tween.Completed:Connect(function()
 			completedCount = completedCount + 1
-			if completedCount == #effects then
+			if completedCount == totalTweens then
 				-- All effects faded out, clean up
 				removeAura()
 			end
 		end)
 		
 		tween:Play()
+	end
+	
+	-- Disable Beams after a delay (instant, no tween)
+	task.delay(duration, function()
+		for _, beam in ipairs(beams) do
+			beam.Enabled = false
+		end
+	end)
+	
+	-- Fade out Lights by tweening Brightness to 0
+	for _, light in ipairs(lights) do
+		local tweenInfo = TweenInfo.new(
+			duration,
+			Enum.EasingStyle.Quad,
+			Enum.EasingDirection.In
+		)
+		
+		local tween = TweenService:Create(light, tweenInfo, {
+			Brightness = 0
+		})
+		
+		table.insert(activeTweens, tween)
+		
+		-- Track completion
+		tween.Completed:Connect(function()
+			completedCount = completedCount + 1
+			if completedCount == totalTweens then
+				-- All effects faded out, clean up
+				removeAura()
+			end
+		end)
+		
+		tween:Play()
+	end
+	
+	-- If no tweens, remove immediately
+	if totalTweens == 0 then
+		removeAura()
 	end
 	
 	print("[AURA SYSTEM] Fading out aura over", duration, "seconds")
