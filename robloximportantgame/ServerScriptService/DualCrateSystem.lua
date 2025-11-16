@@ -322,9 +322,22 @@ end
 
 local function openPremiumCrate(player)
 	-- Prevent spam
-	if playersOpening[player.UserId] or pendingPurchases[player.UserId] then
-		warn("[DUAL CRATE]", player.Name, "is already opening a crate or has a pending purchase!")
+	if playersOpening[player.UserId] then
+		warn("[DUAL CRATE]", player.Name, "is already opening a crate!")
 		return
+	end
+	
+	-- Check if there's a pending purchase and if it's stale (older than 10 seconds)
+	if pendingPurchases[player.UserId] then
+		local timeSincePending = tick() - pendingPurchases[player.UserId]
+		if timeSincePending < 10 then
+			warn("[DUAL CRATE]", player.Name, "has a pending purchase (wait", math.ceil(10 - timeSincePending), "seconds)")
+			return
+		else
+			-- Stale purchase, clear it
+			print("[DUAL CRATE] Clearing stale purchase for", player.Name)
+			pendingPurchases[player.UserId] = nil
+		end
 	end
 	
 	-- Check if ProductId is configured
@@ -333,8 +346,8 @@ local function openPremiumCrate(player)
 		return
 	end
 	
-	-- Mark as pending purchase
-	pendingPurchases[player.UserId] = true
+	-- Mark as pending purchase with timestamp
+	pendingPurchases[player.UserId] = tick()
 	print("[DUAL CRATE]", player.Name, "initiating PREMIUM crate purchase for", CRATE_CONFIG.Premium.Cost, "Robux")
 	
 	-- Prompt Robux purchase
@@ -348,10 +361,10 @@ local function openPremiumCrate(player)
 		return
 	end
 	
-	-- Auto-clear pending purchase after 60 seconds (in case purchase is cancelled/fails)
-	task.delay(60, function()
+	-- Auto-clear pending purchase after 15 seconds (user cancelled or closed prompt)
+	task.delay(15, function()
 		if pendingPurchases[player.UserId] then
-			warn("[DUAL CRATE] Clearing stale pending purchase for", player.Name)
+			print("[DUAL CRATE] Auto-clearing pending purchase for", player.Name, "(likely cancelled)")
 			pendingPurchases[player.UserId] = nil
 		end
 	end)
