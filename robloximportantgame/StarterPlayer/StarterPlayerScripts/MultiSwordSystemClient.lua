@@ -346,6 +346,10 @@ end
 switchSwordRemote.OnClientEvent:Connect(function(swordName)
 	currentSwordName = swordName
 	currentSwordConfig = SwordConfig.Swords[swordName]
+	
+	-- Expose current sword globally for other systems (like aura system)
+	_G.CurrentSwordName = swordName
+	
 	print("Switched to: " .. swordName)
 end)
 
@@ -415,6 +419,10 @@ initializeSwordRemote.OnClientEvent:Connect(function(action, targetPlayer, sword
 		serverInitialized = true
 		currentSwordName = action
 		currentSwordConfig = SwordConfig.Swords[action]
+		
+		-- Expose current sword globally for other systems (like aura system)
+		_G.CurrentSwordName = action
+		
 		print("✅ Sword system initialized! Current sword: " .. action)
 	end
 end)

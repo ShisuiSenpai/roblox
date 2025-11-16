@@ -5,12 +5,15 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 
-print("[AURA SYSTEM] Loading...")
+print("[AURA SYSTEM] ========================================")
+print("[AURA SYSTEM] Loading Aura System...")
+print("[AURA SYSTEM] ========================================")
 
 -- ========================================
 -- CONFIGURATION
@@ -42,6 +45,7 @@ local currentAura = nil
 local currentSword = nil
 local auraFolder = nil
 local activeTweens = {}
+local lastCheckedSword = nil
 
 -- ========================================
 -- HELPER FUNCTIONS
@@ -49,25 +53,43 @@ local activeTweens = {}
 
 -- Function to get the VFX model from ReplicatedStorage
 local function getVFXModel(vfxName)
+	print("[AURA SYSTEM] Looking for VFX model:", vfxName)
+	
 	local assetsFolder = ReplicatedStorage:FindFirstChild("Assets")
 	if not assetsFolder then
-		warn("[AURA SYSTEM] Assets folder not found in ReplicatedStorage!")
+		warn("[AURA SYSTEM] ❌ Assets folder not found in ReplicatedStorage!")
 		return nil
 	end
+	print("[AURA SYSTEM] ✓ Found Assets folder")
 	
 	local auraVFXFolder = assetsFolder:FindFirstChild("AuraVFX")
 	if not auraVFXFolder then
-		warn("[AURA SYSTEM] AuraVFX folder not found in Assets!")
+		warn("[AURA SYSTEM] ❌ AuraVFX folder not found in Assets!")
+		print("[AURA SYSTEM] Available folders in Assets:", table.concat(getChildrenNames(assetsFolder), ", "))
 		return nil
 	end
+	print("[AURA SYSTEM] ✓ Found AuraVFX folder")
 	
 	local vfxModel = auraVFXFolder:FindFirstChild(vfxName)
 	if not vfxModel then
-		warn("[AURA SYSTEM] VFX model not found:", vfxName)
+		warn("[AURA SYSTEM] ❌ VFX model not found:", vfxName)
+		print("[AURA SYSTEM] Available models in AuraVFX:", table.concat(getChildrenNames(auraVFXFolder), ", "))
 		return nil
 	end
 	
+	print("[AURA SYSTEM] ✓ Found VFX model:", vfxModel.Name, "- Type:", vfxModel.ClassName)
+	print("[AURA SYSTEM] ✓ VFX model has", #vfxModel:GetChildren(), "children")
+	
 	return vfxModel
+end
+
+-- Helper to get children names for debugging
+local function getChildrenNames(parent)
+	local names = {}
+	for _, child in ipairs(parent:GetChildren()) do
+		table.insert(names, child.Name)
+	end
+	return names
 end
 
 -- Function to find matching body part in character
@@ -150,7 +172,8 @@ end
 local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 	local clonedObjects = {}
 	
-	print("[AURA SYSTEM] Cloning VFX from", sourcePart.Name, "to", targetPart.Name)
+	print("[AURA SYSTEM]   Scanning", sourcePart.Name, "for VFX...")
+	print("[AURA SYSTEM]   Source part has", #sourcePart:GetDescendants(), "total descendants")
 	
 	-- Go through ALL descendants recursively
 	for _, descendant in ipairs(sourcePart:GetDescendants()) do
@@ -164,11 +187,14 @@ local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 				clonedObject = descendant:Clone()
 				clonedObject.Parent = targetPart
 				
-				print("[AURA SYSTEM]   → Cloned Attachment:", descendant.Name)
+				print("[AURA SYSTEM]     → Cloned Attachment:", descendant.Name, "with", #clonedObject:GetDescendants(), "children")
 				
 				-- Process all effects inside this attachment
 				for _, effect in ipairs(clonedObject:GetDescendants()) do
-					processEffectTransparency(effect, scale)
+					if effect:IsA("ParticleEmitter") or effect:IsA("Beam") then
+						print("[AURA SYSTEM]       → Processing", effect.ClassName, "inside attachment")
+						processEffectTransparency(effect, scale)
+					end
 				end
 				
 				table.insert(clonedObjects, clonedObject)
@@ -180,7 +206,7 @@ local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 				clonedObject = descendant:Clone()
 				clonedObject.Parent = targetPart
 				
-				print("[AURA SYSTEM]   → Cloned ParticleEmitter:", descendant.Name)
+				print("[AURA SYSTEM]     → Cloned ParticleEmitter:", descendant.Name)
 				
 				processEffectTransparency(clonedObject, scale)
 				table.insert(clonedObjects, clonedObject)
@@ -192,7 +218,7 @@ local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 				clonedObject = descendant:Clone()
 				clonedObject.Parent = targetPart
 				
-				print("[AURA SYSTEM]   → Cloned Beam:", descendant.Name)
+				print("[AURA SYSTEM]     → Cloned Beam:", descendant.Name)
 				
 				processEffectTransparency(clonedObject, scale)
 				table.insert(clonedObjects, clonedObject)
@@ -204,13 +230,13 @@ local function cloneAllVFXToBodyPart(sourcePart, targetPart, scale)
 				clonedObject = descendant:Clone()
 				clonedObject.Parent = targetPart
 				
-				print("[AURA SYSTEM]   → Cloned Light:", descendant.Name)
+				print("[AURA SYSTEM]     → Cloned Light:", descendant.Name)
 				table.insert(clonedObjects, clonedObject)
 			end
 		end
 	end
 	
-	print("[AURA SYSTEM]   ✅ Cloned", #clonedObjects, "objects")
+	print("[AURA SYSTEM]   ✅ Cloned", #clonedObjects, "objects from", sourcePart.Name)
 	
 	return clonedObjects
 end
@@ -260,7 +286,7 @@ local function fadeInAura(duration)
 		end
 	end
 	
-	print("[AURA SYSTEM] Fading in aura over", duration, "seconds")
+	print("[AURA SYSTEM] ✨ Fading in aura over", duration, "seconds")
 end
 
 -- Function to fade out aura effects
@@ -325,26 +351,33 @@ local function applyAura(swordName)
 	-- Check if this sword has an aura config
 	local auraConfig = AURA_CONFIG[swordName]
 	if not auraConfig then
+		print("[AURA SYSTEM] No aura config for sword:", swordName)
 		return -- No aura for this sword
 	end
 	
 	-- Remove existing aura first
 	if currentAura then
+		print("[AURA SYSTEM] Removing existing aura:", currentAura)
 		removeAura()
 	end
 	
 	print("[AURA SYSTEM] ========================================")
-	print("[AURA SYSTEM] Applying aura for sword:", swordName)
+	print("[AURA SYSTEM] 🌟 Applying aura for sword:", swordName)
+	print("[AURA SYSTEM] ========================================")
 	
 	-- Get VFX model
 	local vfxModel = getVFXModel(auraConfig.VFXModel)
 	if not vfxModel then
-		warn("[AURA SYSTEM] Failed to get VFX model for", swordName)
+		warn("[AURA SYSTEM] ❌ Failed to get VFX model for", swordName)
 		return
 	end
 	
-	print("[AURA SYSTEM] Found VFX model:", vfxModel.Name)
-	print("[AURA SYSTEM] VFX model has", #vfxModel:GetChildren(), "children")
+	print("[AURA SYSTEM] VFX Model Structure:")
+	for _, child in ipairs(vfxModel:GetChildren()) do
+		if child:IsA("BasePart") then
+			print("[AURA SYSTEM]   -", child.Name, "→", #child:GetDescendants(), "descendants")
+		end
+	end
 	
 	-- Create folder to hold references to all aura effects
 	auraFolder = Instance.new("Folder")
@@ -354,6 +387,7 @@ local function applyAura(swordName)
 	-- Apply VFX from each body part in the VFX model to the matching character body part
 	local totalEffectsApplied = 0
 	local bodyPartsProcessed = 0
+	local bodyPartsMatched = 0
 	
 	for _, sourcePart in ipairs(vfxModel:GetChildren()) do
 		if sourcePart:IsA("BasePart") then
@@ -362,7 +396,8 @@ local function applyAura(swordName)
 			
 			local targetPart = findMatchingBodyPart(character, sourcePart.Name)
 			if targetPart then
-				print("[AURA SYSTEM] Matched to character part:", targetPart.Name)
+				bodyPartsMatched = bodyPartsMatched + 1
+				print("[AURA SYSTEM] ✓ Matched to character part:", targetPart.Name)
 				
 				-- Clone ALL VFX from this source part to the target part
 				local clonedObjects = cloneAllVFXToBodyPart(sourcePart, targetPart, auraConfig.Scale)
@@ -378,12 +413,16 @@ local function applyAura(swordName)
 				
 				totalEffectsApplied = totalEffectsApplied + #clonedObjects
 			else
-				warn("[AURA SYSTEM] Could not find matching body part for:", sourcePart.Name)
+				warn("[AURA SYSTEM] ❌ Could not find matching body part for:", sourcePart.Name)
 			end
 		end
 	end
 	
-	print("[AURA SYSTEM] Processed", bodyPartsProcessed, "body parts")
+	print("[AURA SYSTEM] ========================================")
+	print("[AURA SYSTEM] Summary:")
+	print("[AURA SYSTEM]   Body parts in VFX model:", bodyPartsProcessed)
+	print("[AURA SYSTEM]   Body parts matched:", bodyPartsMatched)
+	print("[AURA SYSTEM]   Total effects applied:", totalEffectsApplied)
 	print("[AURA SYSTEM] ========================================")
 	
 	if totalEffectsApplied > 0 then
@@ -393,7 +432,7 @@ local function applyAura(swordName)
 		-- Fade in the aura
 		fadeInAura(auraConfig.FadeInDuration)
 		
-		print("[AURA SYSTEM] ✅ Successfully applied", totalEffectsApplied, "effects to character!")
+		print("[AURA SYSTEM] ✅ Successfully applied aura to character!")
 	else
 		-- No effects applied, clean up
 		if auraFolder then
@@ -437,10 +476,12 @@ local function onSwordEquipped(swordName)
 		return -- Already has this aura
 	end
 	
-	print("[AURA SYSTEM] Sword equipped:", swordName)
+	print("[AURA SYSTEM] 🗡️ Sword changed to:", swordName)
 	
 	-- Check if this sword has an aura
 	if AURA_CONFIG[swordName] then
+		print("[AURA SYSTEM] ✓ This sword has an aura configuration!")
+		
 		-- Fade out old aura if exists
 		if currentAura then
 			local oldConfig = AURA_CONFIG[currentAura]
@@ -457,6 +498,8 @@ local function onSwordEquipped(swordName)
 		-- Apply new aura
 		applyAura(swordName)
 	else
+		print("[AURA SYSTEM] ✗ No aura configured for this sword")
+		
 		-- Sword has no aura, remove existing aura
 		if currentAura then
 			local oldConfig = AURA_CONFIG[currentAura]
@@ -475,58 +518,47 @@ end
 -- INITIALIZATION
 -- ========================================
 
--- Listen for sword changes
--- The MultiSwordSystem should expose the current sword somehow
--- Let's check for tool equipped in character
+-- Function to check current sword from MultiSwordSystem
+local function checkCurrentSword()
+	local currentSwordName = _G.CurrentSwordName
+	
+	if currentSwordName and currentSwordName ~= lastCheckedSword then
+		lastCheckedSword = currentSwordName
+		onSwordEquipped(currentSwordName)
+	end
+end
 
+-- Listen for character respawn
 local function onCharacterAdded(newCharacter)
 	character = newCharacter
 	humanoid = character:WaitForChild("Humanoid")
 	
 	-- Remove any existing aura
 	removeAura()
+	lastCheckedSword = nil
 	
-	-- Listen for tools equipped
-	character.ChildAdded:Connect(function(child)
-		if child:IsA("Tool") then
-			onSwordEquipped(child.Name)
-		end
-	end)
-	
-	-- Listen for tools unequipped
-	character.ChildRemoved:Connect(function(child)
-		if child:IsA("Tool") and child.Name == currentSword then
-			-- Sword unequipped, remove aura
-			if currentAura then
-				local auraConfig = AURA_CONFIG[currentAura]
-				if auraConfig then
-					fadeOutAura(auraConfig.FadeOutDuration)
-				else
-					removeAura()
-				end
-			end
-			currentSword = nil
-		end
-	end)
-	
-	-- Check if already holding a tool
-	for _, child in ipairs(character:GetChildren()) do
-		if child:IsA("Tool") then
-			onSwordEquipped(child.Name)
-			break
-		end
-	end
+	print("[AURA SYSTEM] Character respawned - ready for new auras")
 end
 
 -- Handle character respawn
 player.CharacterAdded:Connect(onCharacterAdded)
-onCharacterAdded(character)
 
-print("[AURA SYSTEM] ✅ Ready! Listening for sword changes...")
+-- Poll for sword changes
+RunService.Heartbeat:Connect(function()
+	checkCurrentSword()
+end)
 
--- List configured auras
-local configuredSwords = {}
-for swordName, _ in pairs(AURA_CONFIG) do
-	table.insert(configuredSwords, swordName)
+-- Initial check
+task.wait(1) -- Wait for sword system to initialize
+checkCurrentSword()
+
+print("[AURA SYSTEM] ========================================")
+print("[AURA SYSTEM] ✅ Aura System Ready!")
+print("[AURA SYSTEM] ========================================")
+print("[AURA SYSTEM] Configured auras:")
+for swordName, config in pairs(AURA_CONFIG) do
+	print("[AURA SYSTEM]   -", swordName, "→", config.VFXModel)
 end
-print("[AURA SYSTEM] Configured auras for:", table.concat(configuredSwords, ", "))
+print("[AURA SYSTEM] ========================================")
+print("[AURA SYSTEM] Watching _G.CurrentSwordName for changes...")
+print("[AURA SYSTEM] ========================================")
