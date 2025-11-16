@@ -836,6 +836,9 @@ end
 
 -- Listen for crate opening event from server
 openCrateEvent.OnClientEvent:Connect(function(chosenSword, allSwords)
+	print("[CRATE CLIENT] ✅ Received crate opening event!")
+	print("[CRATE CLIENT] Chosen sword:", chosenSword)
+	print("[CRATE CLIENT] Total swords for animation:", #allSwords)
 	openCrate(chosenSword, allSwords)
 end)
 

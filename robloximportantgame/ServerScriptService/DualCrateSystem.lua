@@ -115,6 +115,17 @@ else
 	print("[DUAL CRATE] Found existing OpenCrate RemoteEvent")
 end
 
+-- Create or get SwitchSword event (client needs this)
+local switchSwordEvent = ReplicatedStorage:FindFirstChild("SwitchSword")
+if not switchSwordEvent then
+	switchSwordEvent = Instance.new("RemoteEvent")
+	switchSwordEvent.Name = "SwitchSword"
+	switchSwordEvent.Parent = ReplicatedStorage
+	print("[DUAL CRATE] Created SwitchSword RemoteEvent")
+else
+	print("[DUAL CRATE] Found existing SwitchSword RemoteEvent")
+end
+
 print("[DUAL CRATE] Remote events ready")
 
 -- ========================================
@@ -258,24 +269,43 @@ local function openRegularCrate(player)
 		table.insert(allSwordNames, swordName)
 	end
 	
+	print("[DUAL CRATE] Firing animation event to", player.Name, "with sword:", chosenSword.SwordName)
+	print("[DUAL CRATE] Sending", #allSwordNames, "total swords for animation")
+	
 	-- Trigger client-side animation
 	if openCrateEvent then
 		openCrateEvent:FireClient(player, chosenSword.SwordName, allSwordNames)
+		print("[DUAL CRATE] ✅ Animation event fired to", player.Name)
+	else
+		warn("[DUAL CRATE] OpenCrate event is nil!")
+		playersOpening[player.UserId] = nil
+		_G.CurrencyManager.addCurrency(player, CRATE_CONFIG.Regular.Cost, "Crate Failed - Refund")
+		return
 	end
 	
-	-- Wait for animation
-	task.wait(2)
+	-- Wait for animation (client animation is ~5 seconds + VFX)
+	print("[DUAL CRATE] Waiting 7 seconds for animation to complete...")
+	task.wait(7)
+	
+	-- Check if player still exists
+	if not player or not player.Parent then
+		warn("[DUAL CRATE] Player left during animation")
+		playersOpening[player.UserId] = nil
+		return
+	end
 	
 	-- Award sword
+	print("[DUAL CRATE] Awarding sword to", player.Name)
 	local addSuccess = _G.InventoryManager.addSword(player, chosenSword.SwordName)
 	if addSuccess then
-		print("[DUAL CRATE]", player.Name, "received:", chosenSword.SwordName)
+		print("[DUAL CRATE] ✅", player.Name, "received:", chosenSword.SwordName)
 	else
 		warn("[DUAL CRATE] Failed to add sword to", player.Name, "'s inventory!")
 	end
 	
 	-- Unlock
 	playersOpening[player.UserId] = nil
+	print("[DUAL CRATE] Player", player.Name, "unmarked from opening")
 end
 
 -- ========================================
@@ -438,6 +468,29 @@ premiumPrompt.Triggered:Connect(function(player)
 	if not player or not player.Parent then return end
 	openPremiumCrate(player)
 end)
+
+-- Handle sword switching from client
+if switchSwordEvent then
+	switchSwordEvent.OnServerEvent:Connect(function(player, swordName)
+		if not player or not player.Parent then return end
+		
+		print("[DUAL CRATE] Player", player.Name, "requesting sword switch to:", swordName)
+		
+		-- Validate sword exists in inventory
+		if _G.InventoryManager and _G.InventoryManager.hasSword then
+			local hasSword = _G.InventoryManager.hasSword(player, swordName)
+			if hasSword then
+				-- Switch sword via inventory manager (or multi-sword system)
+				if _G.InventoryManager.equipSword then
+					_G.InventoryManager.equipSword(player, swordName)
+					print("[DUAL CRATE] Switched", player.Name, "to sword:", swordName)
+				end
+			else
+				warn("[DUAL CRATE]", player.Name, "doesn't have sword:", swordName)
+			end
+		end
+	end)
+end
 
 -- ========================================
 -- CLEANUP
