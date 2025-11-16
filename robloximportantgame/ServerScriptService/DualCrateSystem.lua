@@ -295,23 +295,39 @@ local function openRegularCrate(player)
 	print("[DUAL CRATE] Waiting 7 seconds for animation to complete...")
 	task.wait(7)
 	
-	-- Check if player still exists
-	if not player or not player.Parent then
-		warn("[DUAL CRATE] Player left during animation")
-		playersOpening[player.UserId] = nil
-		return
+	-- Use pcall to ensure we ALWAYS clear the flag even if there's an error
+	local success, errorMsg = pcall(function()
+		-- Check if player still exists
+		if not player or not player.Parent then
+			warn("[DUAL CRATE] Player left during animation")
+			return
+		end
+		
+		-- Award sword
+		print("[DUAL CRATE] Awarding sword to", player.Name)
+		
+		-- Check if InventoryManager exists and has AddSword function
+		if not _G.InventoryManager then
+			error("InventoryManager not found!")
+		end
+		
+		if not _G.InventoryManager.AddSword then
+			error("InventoryManager.AddSword function not found!")
+		end
+		
+		local addSuccess = _G.InventoryManager.AddSword(player, chosenSword.SwordName)
+		if addSuccess then
+			print("[DUAL CRATE] ✅", player.Name, "received:", chosenSword.SwordName)
+		else
+			warn("[DUAL CRATE] AddSword returned false for", player.Name)
+		end
+	end)
+	
+	if not success then
+		warn("[DUAL CRATE] ERROR awarding sword:", errorMsg)
 	end
 	
-	-- Award sword
-	print("[DUAL CRATE] Awarding sword to", player.Name)
-	local addSuccess = _G.InventoryManager.addSword(player, chosenSword.SwordName)
-	if addSuccess then
-		print("[DUAL CRATE] ✅", player.Name, "received:", chosenSword.SwordName)
-	else
-		warn("[DUAL CRATE] Failed to add sword to", player.Name, "'s inventory!")
-	end
-	
-	-- Unlock
+	-- ALWAYS unlock, even if there was an error
 	playersOpening[player.UserId] = nil
 	print("[DUAL CRATE] Player", player.Name, "unmarked from opening")
 end
@@ -443,28 +459,36 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 			-- Check if player still exists
 			if not player or not player.Parent then
 				warn("[DUAL CRATE] Player left during animation")
-				playersOpening[userId] = nil
 				return
 			end
 			
 			-- Award sword
 			print("[DUAL CRATE] Awarding sword to", player.Name)
-			local addSuccess = _G.InventoryManager.addSword(player, chosenSword.SwordName)
+			
+			-- Check if InventoryManager exists and has AddSword function
+			if not _G.InventoryManager then
+				error("InventoryManager not found!")
+			end
+			
+			if not _G.InventoryManager.AddSword then
+				error("InventoryManager.AddSword function not found!")
+			end
+			
+			local addSuccess = _G.InventoryManager.AddSword(player, chosenSword.SwordName)
 			if addSuccess then
 				print("[DUAL CRATE] ✅", player.Name, "received (PREMIUM):", chosenSword.SwordName)
 			else
-				warn("[DUAL CRATE] Failed to add sword to", player.Name, "'s inventory!")
+				warn("[DUAL CRATE] AddSword returned false for", player.Name)
 			end
-			
-			-- Unlock
-			playersOpening[userId] = nil
-			print("[DUAL CRATE] Player", player.Name, "unmarked from opening")
 		end)
 		
 		if not success then
 			warn("[DUAL CRATE] ERROR in premium crate processing:", errorMsg)
-			playersOpening[userId] = nil
 		end
+		
+		-- ALWAYS unlock, even if there was an error
+		playersOpening[userId] = nil
+		print("[DUAL CRATE] Player", player and player.Name or userId, "unmarked from opening")
 	end)
 	
 	-- Return immediately to not block Roblox's purchase system
@@ -497,19 +521,9 @@ if switchSwordEvent then
 		
 		print("[DUAL CRATE] Player", player.Name, "requesting sword switch to:", swordName)
 		
-		-- Validate sword exists in inventory
-		if _G.InventoryManager and _G.InventoryManager.hasSword then
-			local hasSword = _G.InventoryManager.hasSword(player, swordName)
-			if hasSword then
-				-- Switch sword via inventory manager (or multi-sword system)
-				if _G.InventoryManager.equipSword then
-					_G.InventoryManager.equipSword(player, swordName)
-					print("[DUAL CRATE] Switched", player.Name, "to sword:", swordName)
-				end
-			else
-				warn("[DUAL CRATE]", player.Name, "doesn't have sword:", swordName)
-			end
-		end
+		-- Note: The MultiSwordSystem will handle the actual equipping
+		-- We just log it here for debugging
+		-- The client just fires this event as a confirmation that animation finished
 	end)
 end
 
