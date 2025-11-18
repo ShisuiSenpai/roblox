@@ -396,6 +396,19 @@ local function hideHolster(character, swordName)
 end
 
 -- ========================================
+-- HELPER FUNCTIONS FOR DEBUGGING
+-- ========================================
+
+-- Helper function for debugging
+local function getChildrenNames(parent)
+	local names = {}
+	for _, child in ipairs(parent:GetChildren()) do
+		table.insert(names, child.Name .. "(" .. child.ClassName .. ")")
+	end
+	return names
+end
+
+-- ========================================
 -- EQUIPPED SWORD MANAGEMENT
 -- ========================================
 
@@ -457,57 +470,58 @@ local function equipSword(character, swordName, config)
 	equippedSword.Parent = character
 	print("[SWORD EQUIP] ✓ Tool parented to character")
 
-	-- Find humanoid and right arm
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	-- Find right arm/hand for welding
 	local rightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightHand")
 	
-	if humanoid and rightArm then
-		print("[SWORD EQUIP] ✓ Humanoid and RightArm found")
-		print("[SWORD EQUIP]   RightArm name:", rightArm.Name)
-		
-		-- Equip the tool (attaches to hand)
-		humanoid:EquipTool(equippedSword)
-		print("[SWORD EQUIP] ✓ Tool equipped via Humanoid:EquipTool()")
-		
-		-- Wait a frame for Motor6D to be created
-		task.wait(0.05)
-		
-		-- Check if RightGrip Motor6D was created
-		local rightGrip = rightArm:FindFirstChild("RightGrip")
-		if rightGrip and rightGrip:IsA("Motor6D") then
-			print("[SWORD EQUIP] ✓ RightGrip Motor6D created successfully!")
-			print("[SWORD EQUIP]   Part0:", rightGrip.Part0 and rightGrip.Part0.Name)
-			print("[SWORD EQUIP]   Part1:", rightGrip.Part1 and rightGrip.Part1.Name)
-			print("[SWORD EQUIP]   C0:", rightGrip.C0)
-			print("[SWORD EQUIP]   C1:", rightGrip.C1)
-		else
-			warn("[SWORD EQUIP] ❌ RightGrip Motor6D NOT found!")
-			print("[SWORD EQUIP]   RightArm children:", table.concat(getChildrenNames(rightArm), ", "))
-		end
-		
-		-- Final position check
-		if handle then
-			print("[SWORD EQUIP]   Final Handle CFrame:", handle.CFrame)
-			print("[SWORD EQUIP]   Final Handle Position:", handle.Position)
-		end
-	else
-		warn("[SWORD EQUIP] ❌ Missing Humanoid or RightArm!")
-		if not humanoid then warn("[SWORD EQUIP]   No Humanoid found") end
-		if not rightArm then warn("[SWORD EQUIP]   No RightArm found") end
+	if not rightArm then
+		warn("[SWORD EQUIP] ❌ No RightArm/RightHand found!")
+		print("[SWORD EQUIP] Character children:", table.concat(getChildrenNames(character), ", "))
+		return
 	end
 	
+	print("[SWORD EQUIP] ✓ RightArm found:", rightArm.Name)
+	
+	-- Remove any existing RightGrip Motor6D
+	local existingGrip = rightArm:FindFirstChild("RightGrip")
+	if existingGrip then
+		existingGrip:Destroy()
+		print("[SWORD EQUIP] Removed existing RightGrip")
+	end
+	
+	-- Create Motor6D manually for reliable welding
+	local motor = Instance.new("Motor6D")
+	motor.Name = "RightGrip"
+	motor.Part0 = rightArm
+	motor.Part1 = handle
+	
+	-- Set C0 (hand offset) - standard Roblox tool grip
+	-- This positions the grip at the bottom of the right arm, rotated 90 degrees
+	motor.C0 = CFrame.new(0, -1, 0) * CFrame.Angles(math.rad(90), 0, 0)
+	
+	-- Set C1 (handle offset) - use RightGripAttachment if available
+	local gripAttachment = handle:FindFirstChild("RightGripAttachment")
+	if gripAttachment and gripAttachment:IsA("Attachment") then
+		motor.C1 = gripAttachment.CFrame
+		print("[SWORD EQUIP] ✓ Using RightGripAttachment for grip point")
+		print("[SWORD EQUIP]   Attachment CFrame:", gripAttachment.CFrame)
+	else
+		-- Fallback: center of handle
+		motor.C1 = CFrame.new(0, 0, 0)
+		warn("[SWORD EQUIP] ⚠️ No RightGripAttachment - using Handle center")
+	end
+	
+	-- Parent Motor6D to RightArm to activate the weld
+	motor.Parent = rightArm
+	
+	print("[SWORD EQUIP] ✓ Motor6D created with MANUAL WELDING!")
+	print("[SWORD EQUIP]   Part0:", motor.Part0.Name)
+	print("[SWORD EQUIP]   Part1:", motor.Part1.Name)
+	print("[SWORD EQUIP]   C0:", motor.C0)
+	print("[SWORD EQUIP]   C1:", motor.C1)
+	print("[SWORD EQUIP]   Handle Position (final):", handle.Position)
 	print("[SWORD EQUIP] ========================================")
 
 	return equippedSword
-end
-
--- Helper function for debugging
-local function getChildrenNames(parent)
-	local names = {}
-	for _, child in ipairs(parent:GetChildren()) do
-		table.insert(names, child.Name .. "(" .. child.ClassName .. ")")
-	end
-	return names
 end
 
 -- Remove equipped sword
