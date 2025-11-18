@@ -401,22 +401,47 @@ end
 
 -- Create equipped sword (visible to all)
 local function equipSword(character, swordName, config)
+	print("[SWORD EQUIP] ========================================")
+	print("[SWORD EQUIP] Starting equip for:", character.Name, "sword:", swordName)
+	
 	-- Remove any existing equipped sword
 	local existingEquipped = character:FindFirstChild("EquippedSword")
 	if existingEquipped then
+		print("[SWORD EQUIP] Removing existing equipped sword")
 		existingEquipped:Destroy()
 	end
 
 	-- Find tool template
 	local toolTemplate = toolSwordsFolder:FindFirstChild(config.ToolName)
 	if not toolTemplate then
-		warn("[SWORD] Could not find tool: " .. config.ToolName)
+		warn("[SWORD EQUIP] ❌ Could not find tool:", config.ToolName)
 		return
 	end
+	print("[SWORD EQUIP] ✓ Found tool template:", config.ToolName)
 
-	-- Clone and parent to character
+	-- Clone tool
 	local equippedSword = toolTemplate:Clone()
 	equippedSword.Name = "EquippedSword"
+	
+	-- Debug: Check Handle
+	local handle = equippedSword:FindFirstChild("Handle")
+	if handle then
+		print("[SWORD EQUIP] ✓ Handle found:", handle.Name)
+		print("[SWORD EQUIP]   Handle CFrame:", handle.CFrame)
+		print("[SWORD EQUIP]   Handle Size:", handle.Size)
+		
+		-- Check for attachments
+		local rightGrip = handle:FindFirstChild("RightGripAttachment") or handle:FindFirstChild("RightGrip")
+		if rightGrip then
+			print("[SWORD EQUIP] ✓ RightGripAttachment found")
+		else
+			warn("[SWORD EQUIP] ⚠️ No RightGripAttachment found in Handle!")
+			print("[SWORD EQUIP]   Handle children:", table.concat(getChildrenNames(handle), ", "))
+		end
+	else
+		warn("[SWORD EQUIP] ❌ No Handle found in tool!")
+		print("[SWORD EQUIP]   Tool children:", table.concat(getChildrenNames(equippedSword), ", "))
+	end
 	
 	-- Disable collision but keep visible
 	-- The client-side script will handle hiding this for OTHER players
@@ -430,15 +455,59 @@ local function equipSword(character, swordName, config)
 	end
 	
 	equippedSword.Parent = character
+	print("[SWORD EQUIP] ✓ Tool parented to character")
 
-	-- Find humanoid
+	-- Find humanoid and right arm
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if humanoid then
+	local rightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightHand")
+	
+	if humanoid and rightArm then
+		print("[SWORD EQUIP] ✓ Humanoid and RightArm found")
+		print("[SWORD EQUIP]   RightArm name:", rightArm.Name)
+		
 		-- Equip the tool (attaches to hand)
 		humanoid:EquipTool(equippedSword)
+		print("[SWORD EQUIP] ✓ Tool equipped via Humanoid:EquipTool()")
+		
+		-- Wait a frame for Motor6D to be created
+		task.wait(0.05)
+		
+		-- Check if RightGrip Motor6D was created
+		local rightGrip = rightArm:FindFirstChild("RightGrip")
+		if rightGrip and rightGrip:IsA("Motor6D") then
+			print("[SWORD EQUIP] ✓ RightGrip Motor6D created successfully!")
+			print("[SWORD EQUIP]   Part0:", rightGrip.Part0 and rightGrip.Part0.Name)
+			print("[SWORD EQUIP]   Part1:", rightGrip.Part1 and rightGrip.Part1.Name)
+			print("[SWORD EQUIP]   C0:", rightGrip.C0)
+			print("[SWORD EQUIP]   C1:", rightGrip.C1)
+		else
+			warn("[SWORD EQUIP] ❌ RightGrip Motor6D NOT found!")
+			print("[SWORD EQUIP]   RightArm children:", table.concat(getChildrenNames(rightArm), ", "))
+		end
+		
+		-- Final position check
+		if handle then
+			print("[SWORD EQUIP]   Final Handle CFrame:", handle.CFrame)
+			print("[SWORD EQUIP]   Final Handle Position:", handle.Position)
+		end
+	else
+		warn("[SWORD EQUIP] ❌ Missing Humanoid or RightArm!")
+		if not humanoid then warn("[SWORD EQUIP]   No Humanoid found") end
+		if not rightArm then warn("[SWORD EQUIP]   No RightArm found") end
 	end
+	
+	print("[SWORD EQUIP] ========================================")
 
 	return equippedSword
+end
+
+-- Helper function for debugging
+local function getChildrenNames(parent)
+	local names = {}
+	for _, child in ipairs(parent:GetChildren()) do
+		table.insert(names, child.Name .. "(" .. child.ClassName .. ")")
+	end
+	return names
 end
 
 -- Remove equipped sword
