@@ -459,74 +459,14 @@ player.CharacterAdded:Connect(function(newCharacter)
 end)
 
 -- ========================================
--- HIDE OTHER PLAYERS' SERVER-SIDE SWORDS
+-- SWORD VISIBILITY FIX
 -- ========================================
 
--- Function to hide a tool's parts (for other players only)
-local function hideEquippedTool(tool)
-	if not tool then return end
+-- REMOVED: The hiding logic that was making other players' swords invisible
+-- The server now properly handles sword visibility via the EquippedSword tool
+-- Other players will now see your sword when you attack!
 
-	for _, descendant in ipairs(tool:GetDescendants()) do
-		if descendant:IsA("BasePart") then
-			-- Use LocalTransparencyModifier to hide it only for this client
-			descendant.LocalTransparencyModifier = 1
-		elseif descendant:IsA("ParticleEmitter") or descendant:IsA("Trail") or descendant:IsA("Beam") then
-			-- Create a local attribute to track original state
-			if not descendant:GetAttribute("OriginalEnabled") then
-				descendant:SetAttribute("OriginalEnabled", descendant.Enabled)
-			end
-			descendant.Enabled = false
-		elseif descendant:IsA("Light") then
-			if not descendant:GetAttribute("OriginalEnabled") then
-				descendant:SetAttribute("OriginalEnabled", descendant.Enabled)
-			end
-			descendant.Enabled = false
-		end
-	end
-end
-
--- Function to monitor a character for EquippedSword tools
-local function monitorCharacterForEquippedSwords(otherCharacter)
-	-- Hide any existing EquippedSword
-	local existingTool = otherCharacter:FindFirstChild("EquippedSword")
-	if existingTool then
-		hideEquippedTool(existingTool)
-	end
-
-	-- Listen for new EquippedSword tools
-	otherCharacter.ChildAdded:Connect(function(child)
-		if child.Name == "EquippedSword" and child:IsA("Tool") then
-			-- Small delay to ensure all descendants are loaded
-			task.wait(0.05)
-			hideEquippedTool(child)
-		end
-	end)
-end
-
--- Monitor all current players (except local player)
-for _, otherPlayer in ipairs(Players:GetPlayers()) do
-	if otherPlayer ~= player then
-		if otherPlayer.Character then
-			monitorCharacterForEquippedSwords(otherPlayer.Character)
-		end
-
-		-- Monitor future character respawns
-		otherPlayer.CharacterAdded:Connect(function(otherCharacter)
-			monitorCharacterForEquippedSwords(otherCharacter)
-		end)
-	end
-end
-
--- Monitor new players joining
-Players.PlayerAdded:Connect(function(otherPlayer)
-	if otherPlayer ~= player then
-		otherPlayer.CharacterAdded:Connect(function(otherCharacter)
-			monitorCharacterForEquippedSwords(otherCharacter)
-		end)
-	end
-end)
-
-print("[SWORD CLIENT] ✅ Other players' server swords will be hidden")
+print("[SWORD CLIENT] ✅ Sword visibility enabled for all players")
 
 -- ========================================
 -- INITIALIZATION
