@@ -1,6 +1,6 @@
 --[[
 	Jump Pad Script
-	Place this script inside the JumpPad part
+	Place this script inside the JumpPad part OR inside a Model containing the jump pad
 	
 	Features:
 	- Optimized hitbox detection
@@ -9,7 +9,25 @@
 	- Easy to configure parameters
 ]]
 
-local JumpPad = script.Parent
+-- Find the jump pad part (works whether script is in a Part or Model)
+local JumpPad
+if script.Parent:IsA("BasePart") then
+	-- Script is directly in a Part
+	JumpPad = script.Parent
+else
+	-- Script is in a Model, find the primary part or first part
+	if script.Parent.PrimaryPart then
+		JumpPad = script.Parent.PrimaryPart
+	else
+		-- Find the first BasePart in the model
+		JumpPad = script.Parent:FindFirstChildWhichIsA("BasePart")
+	end
+end
+
+-- Validate we found a part
+if not JumpPad then
+	error("Jump Pad script must be inside a Part or a Model containing parts!")
+end
 
 -- Configuration
 local JUMP_POWER = 80 -- Vertical force (how high the player goes)
@@ -20,7 +38,7 @@ local USE_VISUAL_FEEDBACK = true -- Enable/disable visual effects
 
 -- Visual feedback settings
 local ACTIVATED_COLOR = Color3.fromRGB(0, 255, 100)
-local DEFAULT_COLOR = JumpPad.Color
+local DEFAULT_COLOR = JumpPad.Color  -- Store the original color
 local FLASH_DURATION = 0.3
 
 -- Player cooldown tracker (prevents spam)
@@ -153,4 +171,4 @@ task.spawn(function()
 	end
 end)
 
-print("Jump Pad initialized successfully!")
+print("✅ Jump Pad initialized successfully! Using part:", JumpPad.Name)

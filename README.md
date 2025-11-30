@@ -4,10 +4,19 @@ A high-performance, optimized jump pad script for Roblox games with smooth playe
 
 ## Installation
 
+### Simple Setup (Single Part)
 1. Create a **Part** in your Roblox workspace and name it **"JumpPad"**
 2. Insert a **Script** (not LocalScript) into the JumpPad part
 3. Copy the contents of `JumpPad.lua` into that Script
 4. The jump pad will automatically work when players touch it!
+
+### Model Setup (Multiple Parts)
+1. Have a **Model** containing at least one Part
+2. Insert a **Script** (not LocalScript) into the Model
+3. Copy the contents of `JumpPad.lua` into that Script
+4. Optional: Set the Model's PrimaryPart to specify which part triggers the jump
+
+The script automatically detects whether it's in a Part or Model and works accordingly!
 
 ## Features
 
