@@ -1,81 +1,123 @@
-# Roblox Jump Pad Script
+# Roblox Jump Pad - Professional Client-Server System
 
-A high-performance, optimized jump pad script for Roblox games with smooth player launching and proper hitbox detection.
+A high-performance jump pad system using proper client-server architecture for smooth, lag-free launching.
 
-## Installation
+## 🎯 Why This Design?
 
-### Simple Setup (Single Part)
-1. Create a **Part** in your Roblox workspace and name it **"JumpPad"**
-2. Insert a **Script** (not LocalScript) into the JumpPad part
-3. Copy the contents of `JumpPad.lua` into that Script
-4. The jump pad will automatically work when players touch it!
+**Problem with naive approaches:**
+- Server-side velocity changes fight with client physics ownership
+- `.Touched` spam causes stuttering
+- Hard velocity overrides feel unnatural
 
-### Model Setup (Multiple Parts)
-1. Have a **Model** containing at least one Part
-2. Insert a **Script** (not LocalScript) into the Model
-3. Copy the contents of `JumpPad.lua` into that Script
-4. Optional: Set the Model's PrimaryPart to specify which part triggers the jump
+**This solution:**
+- ✅ Server validates, client executes (zero perceived lag)
+- ✅ Impulse-based force (natural momentum preservation)
+- ✅ Clean event-driven architecture
+- ✅ Proper cooldown and validation
 
-The script automatically detects whether it's in a Part or Model and works accordingly!
+## 📦 What's Included
 
-## Features
+| File | Purpose |
+|------|---------|
+| `JumpPadServer.lua` | Server script: Touch detection & validation |
+| `JumpPadClient.lua` | Client script: Physics application |
+| `SETUP_INSTRUCTIONS.md` | Detailed installation guide |
+| `EXAMPLE_CONFIGURATIONS.md` | Pre-configured jump types |
 
-✅ **Optimized Hitbox Detection** - Uses efficient .Touched event with proper player validation  
-✅ **Smooth Launching** - Preserves horizontal momentum for natural movement  
-✅ **Anti-Spam Protection** - Per-player cooldown system prevents exploitation  
-✅ **Visual Feedback** - Optional color flash when activated  
-✅ **Memory Safe** - Automatic cleanup of cooldown data  
-✅ **Configurable** - Easy-to-adjust parameters at the top of the script  
+## 🚀 Quick Start
 
-## Configuration
+### 1. Server Script (in JumpPad Part)
 
-Open the script and adjust these values at the top:
-
-```lua
-local JUMP_POWER = 80                -- Vertical force (how high)
-local HORIZONTAL_MULTIPLIER = 1.2    -- Horizontal velocity preservation
-local LAUNCH_DURATION = 0.1          -- Force application time
-local COOLDOWN_TIME = 0.5            -- Cooldown between uses (per player)
-local USE_VISUAL_FEEDBACK = true     -- Enable/disable color flash
+```
+Workspace
+  └─ JumpPad (Part)
+      └─ Script ← Paste JumpPadServer.lua here
 ```
 
-### Parameter Guide
+### 2. Client Script (in StarterPlayerScripts)
 
-- **JUMP_POWER**: Controls how high players jump (50-150 typical range)
-  - Lower values (50-70): Small bounce
-  - Medium values (70-100): Standard jump pad
-  - Higher values (100-150): Super jump pad
+```
+StarterPlayer
+  └─ StarterPlayerScripts
+      └─ LocalScript ← Paste JumpPadClient.lua here
+```
 
-- **HORIZONTAL_MULTIPLIER**: Preserves player's running momentum
-  - 0 = No horizontal movement (straight up)
-  - 1.0 = Keep current speed
-  - 1.5+ = Speed boost on jump
+**Done!** The system will automatically create the RemoteEvent.
 
-- **COOLDOWN_TIME**: Prevents spam (in seconds)
-  - 0.3-0.5 recommended for fast-paced games
-  - 1.0+ for puzzle/exploration games
+## ⚙️ Configuration
 
-## Optimization Features
+### Server Side (Detection)
+```lua
+local JUMP_STRENGTH = 50      -- Upward boost strength
+local COOLDOWN_TIME = 0.5     -- Seconds between uses
+```
 
-1. **Fast Player Detection**: Efficiently checks if the touching object is a player
-2. **Debounce System**: Per-player cooldowns prevent multiple rapid triggers
-3. **Memory Management**: Automatic cleanup of disconnected players
-4. **Direct Velocity Application**: Uses modern `AssemblyLinearVelocity` for best performance
+### Client Side (Physics)
+```lua
+local HORIZONTAL_PRESERVATION = 0.9  -- Keep momentum (0.0-1.0)
+local IMPULSE_DURATION = 0.15        -- Force application time
+```
 
-## Customization Ideas
+## 🎮 Example Configurations
 
-Once the basic functionality works, you can:
-- Adjust launch angle (currently vertical with horizontal preservation)
-- Add sound effects when activated
-- Create different jump pad types with varying strengths
-- Add particle effects for better visual feedback
-- Implement directional launch pads
+| Style | JUMP_STRENGTH | HORIZONTAL_PRESERVATION |
+|-------|---------------|------------------------|
+| Standard Jump | 50 | 0.9 |
+| High Jump | 75 | 0.9 |
+| Super Jump | 100 | 1.0 |
+| Speed Boost Pad | 40 | 1.5 |
+| Cannon Launch | 150 | 0.3 |
 
-## Next Steps
+## 🔧 How It Works
 
-Test the jump pad in your game, then let me know:
-1. How high you want players to jump
-2. How much horizontal distance they should travel
-3. Any specific angles or directions you want
+```
+Player touches pad → Server validates → RemoteEvent fired → Client applies force
+```
 
-I can then fine-tune the parameters or add directional launching!
+**Why this is smooth:**
+1. Client owns character physics (no server interference)
+2. Velocity change is local (instant, no replication delay)
+3. Impulse addition (not hard override) feels natural
+4. Server still controls game logic (anti-cheat safe)
+
+## 📈 Scalability
+
+- ✅ Works with unlimited jump pads
+- ✅ Each pad has its own settings (just duplicate the server script)
+- ✅ One client script handles all pads
+- ✅ Minimal network traffic (one RemoteEvent per jump)
+
+## 🐛 Troubleshooting
+
+**Not jumping?**
+- Verify server script is in the **Part** (not Model)
+- Verify client script is in **StarterPlayerScripts**
+- Check Part has **CanCollide = true**
+
+**Still feels laggy?**
+- Increase JUMP_STRENGTH (try 75-100)
+- Check game ping (network lag is separate issue)
+
+**Jump too weak/strong?**
+- Adjust JUMP_STRENGTH in server script
+
+## 🎓 Technical Details
+
+**Architecture Pattern:** Command Pattern with Client-Side Prediction
+- **Server:** Authoritative game logic
+- **Client:** Immediate physics response
+- **Communication:** One-way RemoteEvent (server → client)
+
+**Physics Model:** Impulse addition
+- Old approach: `velocity.Y = constant` (override)
+- This approach: `velocity.Y += impulse` (addition)
+- Result: Natural momentum preservation
+
+**Network Optimization:**
+- Character physics are client-owned (Roblox default)
+- Client changes its own physics (no replication needed)
+- Server only sends small event (< 10 bytes)
+
+---
+
+Read `SETUP_INSTRUCTIONS.md` for detailed installation and tuning guide!
