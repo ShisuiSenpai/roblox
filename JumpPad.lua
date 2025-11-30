@@ -83,8 +83,11 @@ local function launchPlayer(character, humanoid)
 	-- Get the character's root part
 	local rootPart = character:FindFirstChild("HumanoidRootPart")
 	if not rootPart then
+		warn("⚠️ Could not find HumanoidRootPart!")
 		return
 	end
+	
+	print("🚀 Launching player:", character.Name)
 	
 	-- Calculate launch velocity
 	-- Preserve some horizontal movement for natural feel
@@ -98,11 +101,36 @@ local function launchPlayer(character, humanoid)
 	-- Combine with vertical jump power
 	local launchVelocity = horizontalVelocity + Vector3.new(0, JUMP_POWER, 0)
 	
-	-- Apply the velocity directly (modern Roblox method)
+	-- Method 1: Set velocity directly (try both modern and legacy)
 	rootPart.AssemblyLinearVelocity = launchVelocity
+	rootPart.Velocity = launchVelocity
 	
-	-- Optional: Set character state to jumping for better animation
+	-- Method 2: Use BodyVelocity for more reliable launching
+	-- Remove any existing BodyVelocity first
+	local existingBV = rootPart:FindFirstChild("JumpPadVelocity")
+	if existingBV then
+		existingBV:Destroy()
+	end
+	
+	-- Create new BodyVelocity
+	local bodyVelocity = Instance.new("BodyVelocity")
+	bodyVelocity.Name = "JumpPadVelocity"
+	bodyVelocity.Velocity = launchVelocity
+	bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+	bodyVelocity.P = 1250
+	bodyVelocity.Parent = rootPart
+	
+	-- Remove BodyVelocity after a short time
+	task.delay(LAUNCH_DURATION, function()
+		if bodyVelocity and bodyVelocity.Parent then
+			bodyVelocity:Destroy()
+		end
+	end)
+	
+	-- Set character state to jumping for better animation
 	humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	
+	print("✅ Launch complete! Velocity:", launchVelocity)
 end
 
 -- Visual feedback function
@@ -135,8 +163,11 @@ local function onTouch(hit)
 		return
 	end
 	
+	print("👟 Player touched jump pad:", player.Name)
+	
 	-- Check cooldown
 	if isOnCooldown(player) then
+		print("⏳ Player on cooldown:", player.Name)
 		return
 	end
 	
