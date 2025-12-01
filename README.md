@@ -32,10 +32,11 @@ A high-performance jump pad system using proper client-server architecture for s
 |------|---------|
 | `MULTI_PAD_SETUP.md` | **⭐ START HERE:** Multi-pad setup guide |
 | `VISUAL_SETUP_GUIDE.md` | Visual walkthrough with diagrams |
+| `NESTED_STRUCTURES_GUIDE.md` | **How it works with maps/folders/models** |
 | `MIGRATION_GUIDE.md` | Upgrade from old system |
-| `SETUP_INSTRUCTIONS.md` | Original single-pad guide |
 | `EXAMPLE_CONFIGURATIONS.md` | Pre-configured jump types |
 | `ARCHITECTURE.md` | Technical deep-dive |
+| `SETUP_INSTRUCTIONS.md` | Original single-pad guide |
 
 ## 🚀 Quick Start (Multi-Pad System - Recommended)
 
@@ -64,6 +65,23 @@ Workspace
 ```
 
 **Done!** Add as many pads as you want - just tag them with "JumpPad"!
+
+### 💡 Works with Nested Structures!
+
+The system automatically finds jump pads **anywhere** in your game:
+
+```
+Workspace
+  └─ Maps
+      ├─ DesertMap
+      │   └─ Obstacles
+      │       └─ JumpPad [Tag: "JumpPad"] ✅ Found automatically!
+      └─ CityMap (Model)
+          └─ Mechanics
+              └─ SuperJump [Tag: "JumpPad"] ✅ Works in nested models!
+```
+
+**CollectionService** searches your entire game - pads in folders, models, maps, or any nesting level are automatically detected! See `NESTED_STRUCTURES_GUIDE.md` for details.
 
 ## ⚙️ Configuration
 

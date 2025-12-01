@@ -45,7 +45,7 @@ StarterPlayer
 
 ### For Each Jump Pad:
 
-1. Create a **Part** in Workspace
+1. Create a **Part** anywhere (Workspace, folders, models, maps - doesn't matter!)
 2. Name it anything you want (e.g., "JumpPad", "SuperJump", "SpeedBoost")
 3. **Right-click the Part** → **Add Tag** → Type **"JumpPad"**
 4. Done! It automatically works!
@@ -54,11 +54,18 @@ StarterPlayer
 Workspace
   ├─ JumpPad (Part) [Tagged: "JumpPad"]
   ├─ SuperJump (Part) [Tagged: "JumpPad"]
-  ├─ SpeedBoost (Part) [Tagged: "JumpPad"]
+  ├─ Maps
+  │   ├─ Level1
+  │   │   └─ JumpPad (Part) [Tagged: "JumpPad"]  ✅ Works in nested folders!
+  │   └─ Level2 (Model)
+  │       └─ SpeedBoost (Part) [Tagged: "JumpPad"]  ✅ Works in models!
   └─ AnotherJumpPad (Part) [Tagged: "JumpPad"]
 ```
 
 **No scripts in the parts!** Just the tag.
+
+**✅ Works ANYWHERE in your game** - inside folders, models, maps, any nesting level!  
+The system uses **CollectionService** which automatically finds ALL tagged parts in your entire game.
 
 ---
 

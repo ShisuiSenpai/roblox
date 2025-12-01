@@ -4,6 +4,15 @@
 	
 	Automatically manages ALL jump pads in your game!
 	Just tag any Part with "JumpPad" and it works.
+	
+	✅ Works with pads ANYWHERE in your game:
+	   • Inside folders
+	   • Inside models
+	   • Inside maps
+	   • ANY level of nesting
+	
+	CollectionService automatically finds ALL tagged parts,
+	no matter where they are in the game hierarchy!
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -153,7 +162,8 @@ local function initialize()
 	
 	initializeRemoteEvent()
 	
-	-- Setup existing pads
+	-- Setup existing pads (finds ALL pads in entire game, regardless of location!)
+	-- Works with pads in: workspace, folders, models, maps, any nesting level
 	for _, pad in ipairs(CollectionService:GetTagged("JumpPad")) do
 		setupJumpPad(pad)
 	end
