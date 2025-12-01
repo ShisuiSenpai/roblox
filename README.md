@@ -14,24 +14,36 @@ A high-performance jump pad system using proper client-server architecture for s
 - ✅ Impulse-based force (natural momentum preservation)
 - ✅ Clean event-driven architecture
 - ✅ Proper cooldown and validation
+- ✅ **Unlimited pads with just 2 scripts!**
 
 ## 📦 What's Included
 
+### Core Scripts
+
 | File | Purpose |
 |------|---------|
-| `JumpPadServer.lua` | Server script: Touch detection & validation |
+| `JumpPadManager.lua` | **⭐ RECOMMENDED:** Centralized server script (manages ALL pads) |
 | `JumpPadClient.lua` | Client script: Physics application |
-| `SETUP_INSTRUCTIONS.md` | Detailed installation guide |
+| `JumpPadServer.lua` | Alternative: Per-pad server script (old method) |
+
+### Documentation
+
+| File | Purpose |
+|------|---------|
+| `MULTI_PAD_SETUP.md` | **⭐ START HERE:** Multi-pad setup guide |
+| `VISUAL_SETUP_GUIDE.md` | Visual walkthrough with diagrams |
+| `MIGRATION_GUIDE.md` | Upgrade from old system |
+| `SETUP_INSTRUCTIONS.md` | Original single-pad guide |
 | `EXAMPLE_CONFIGURATIONS.md` | Pre-configured jump types |
+| `ARCHITECTURE.md` | Technical deep-dive |
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Multi-Pad System - Recommended)
 
-### 1. Server Script (in JumpPad Part)
+### 1. Manager Script (in ServerScriptService)
 
 ```
-Workspace
-  └─ JumpPad (Part)
-      └─ Script ← Paste JumpPadServer.lua here
+ServerScriptService
+  └─ JumpPadManager (Script) ← Paste JumpPadManager.lua here
 ```
 
 ### 2. Client Script (in StarterPlayerScripts)
@@ -39,23 +51,48 @@ Workspace
 ```
 StarterPlayer
   └─ StarterPlayerScripts
-      └─ LocalScript ← Paste JumpPadClient.lua here
+      └─ JumpPadClient (LocalScript) ← Paste JumpPadClient.lua here
 ```
 
-**Done!** The system will automatically create the RemoteEvent.
+### 3. Tag Your Parts
+
+```
+Workspace
+  ├─ JumpPad (Part) [Tag: "JumpPad"] ← Just add the tag!
+  ├─ SuperJump (Part) [Tag: "JumpPad"] ← Works automatically
+  └─ (Any Part) [Tag: "JumpPad"] ← Unlimited pads!
+```
+
+**Done!** Add as many pads as you want - just tag them with "JumpPad"!
 
 ## ⚙️ Configuration
 
-### Server Side (Detection)
+### Default Settings (All Pads)
+In **JumpPadManager.lua**:
 ```lua
-local JUMP_STRENGTH = 50      -- Upward boost strength
-local COOLDOWN_TIME = 0.5     -- Seconds between uses
+local DEFAULT_SETTINGS = {
+    JumpStrength = 50,      -- Higher = jump higher
+    Cooldown = 0.5,         -- Seconds between uses
+}
 ```
 
-### Client Side (Physics)
+### Custom Settings (Specific Pads)
+In **JumpPadManager.lua**:
+```lua
+local CUSTOM_CONFIGS = {
+    ["SuperJump"] = {
+        JumpStrength = 100  -- This pad jumps higher!
+    },
+    ["SpeedBoost"] = {
+        JumpStrength = 35   -- This pad jumps lower
+    }
+}
+```
+
+### Client Side (Physics Feel)
+In **JumpPadClient.lua**:
 ```lua
 local HORIZONTAL_PRESERVATION = 0.9  -- Keep momentum (0.0-1.0)
-local IMPULSE_DURATION = 0.15        -- Force application time
 ```
 
 ## 🎮 Example Configurations
